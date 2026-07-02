@@ -1,5 +1,5 @@
 {
-  "description": "External agent skills installed alongside this repo via scripts/install-all.sh. Not vendored — always fetched from upstream at latest release.",
+  "description": "External agent skills installed alongside this repo via scripts/install-all.sh. Not vendored — fetched from upstream (git repos or Xcode toolchain export) at install time.",
   "skills": [
     {
       "name": "swiftui-expert-skill",
@@ -7,5 +7,26 @@
       "url": "https://github.com/avdlee/swiftui-agent-skill",
       "role": "SwiftUI state, performance, animations, Instruments traces, Liquid Glass"
     }
-  ]
+  ],
+  "xcode_skills": {
+    "description": "Apple-authored agent skills bundled with Xcode. Installed by scripts/install-all.sh.",
+    "primary_source": {
+      "method": "xcrun agent skills export",
+      "notes": "Exports the latest skills from the active Xcode toolchain. Requires Xcode 26+ with Command Line Tools set to that Xcode."
+    },
+    "fallback_source": {
+      "repository": "superagents-lab/xcode27-skills",
+      "url": "https://github.com/superagents-lab/xcode27-skills",
+      "notes": "Community mirror used when export is unavailable (no Xcode, older toolchain, or XCODE_SKILLS_SOURCE=mirror)."
+    },
+    "skills": [
+      "swiftui-specialist",
+      "swiftui-whats-new-27",
+      "uikit-app-modernization",
+      "modernize-tests",
+      "audit-xcode-security-settings",
+      "c-bounds-safety",
+      "device-interaction"
+    ]
+  }
 }
