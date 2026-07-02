@@ -15,7 +15,8 @@ Structure SwiftUI screens so `body` reads like a high-level overview — not an 
 **Skill split:**
 - **`swiftui-view-composition`** (this skill) — *how* to structure and refactor views
 - **`native-swiftui`** — *what* Apple components and system styles to use
-- **`swiftui-expert-skill`** — state management, performance, concurrency (if installed)
+- **`swiftui-project-structure`** — repo folders, packages, targets, MV vs Store layers
+- **`swiftui-expert-skill`** — state, performance, concurrency ([avdlee/swiftui-agent-skill](https://github.com/avdlee/swiftui-agent-skill); install via `./scripts/install-all.sh`)
 
 ## Agent workflow
 
@@ -232,7 +233,7 @@ More patterns: [extraction-patterns.md](extraction-patterns.md).
 ## File and folder conventions
 
 - **One primary `View` per file**; name file after the view (`ArticleRow.swift`).
-- **Co-locate by feature** — `Articles/ArticleListView.swift`, `Articles/ArticleRow.swift` — not global `Views/` dumps.
+- **Co-locate by feature** — `Articles/ArticleListView.swift`, `Articles/ArticleRow.swift` — not global `Views/` dumps. For repo-level layout (packages, targets, `Navigation/`, when to add a Store), see **`swiftui-project-structure`**.
 - **Shared primitives** — only after rule-of-three; e.g. `DesignSystem/ElevatedSurface.swift` or a small Swift package.
 - **`// MARK: -`** for properties, body, helpers; protocol conformance in extensions.
 
@@ -273,5 +274,6 @@ Before finishing a refactor:
 ## Related skills
 
 - **`native-swiftui`** — prefer `GroupBox`, `List`, system button styles over custom cards
-- **`swiftui-expert-skill`** — property wrappers, diffing performance, list identity
+- **`swiftui-project-structure`** — feature folders, SPM packages, app/scene wiring, architecture layers
+- **`swiftui-expert-skill`** — property wrappers, diffing performance, list identity ([avdlee/swiftui-agent-skill](https://github.com/avdlee/swiftui-agent-skill))
 - Source inspiration: [SwiftUI Architecture — Antoine van der Lee](https://www.avanderlee.com/swiftui/swiftui-architecture-structure-views-for-reusability-and-clarity/)

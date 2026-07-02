@@ -1,0 +1,11 @@
+{
+  "description": "External agent skills installed alongside this repo via scripts/install-all.sh. Not vendored — always fetched from upstream at latest release.",
+  "skills": [
+    {
+      "name": "swiftui-expert-skill",
+      "repository": "avdlee/swiftui-agent-skill",
+      "url": "https://github.com/avdlee/swiftui-agent-skill",
+      "role": "SwiftUI state, performance, animations, Instruments traces, Liquid Glass"
+    }
+  ]
+}

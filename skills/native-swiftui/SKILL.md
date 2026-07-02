@@ -16,7 +16,8 @@ Produce iOS interfaces that feel native by **defaulting to Apple's ready-made Sw
 **Skill split:**
 - **`native-swiftui`** (this skill) — *what* Apple components and system styles to use
 - **`swiftui-view-composition`** — *how* to structure and refactor large views into reusable pieces
-- **`swiftui-expert-skill`** — state management, performance, concurrency (if installed)
+- **`swiftui-project-structure`** — repo folders, packages, targets, MV vs Store layers
+- **`swiftui-expert-skill`** — state, performance, concurrency ([avdlee/swiftui-agent-skill](https://github.com/avdlee/swiftui-agent-skill); install via `./scripts/install-all.sh`)
 
 ## Agent workflow
 
@@ -203,7 +204,7 @@ This skill does not cover refactoring large view bodies. When a screen grows bey
 
 ## Swift and project conventions
 
-- One type per file; semantic folder grouping (feature folders, not `Views/` / `ViewModels/` splits).
+- One type per file; feature/domain folders (not global `Views/` / `ViewModels/` splits). For repo layout, packages, and architecture layers, see **`swiftui-project-structure`**.
 - `// MARK: -` sections; protocol conformance in extensions.
 - Swift Testing over XCTest for new tests; meaningful business-logic coverage.
 - Remove stale code after refactors; match patterns already in the project.
