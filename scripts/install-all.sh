@@ -20,21 +20,20 @@ SCOPE="${2:-user}"
 
 REPO_SLUG="$(gh repo view --json nameWithOwner -q .nameWithOwner 2>/dev/null || echo "dbmrq/agent-skills")"
 
-AGENT_SKILLS_PIN_ARGS=()
-SWIFTUI_EXPERT_PIN_ARGS=()
-[[ -n "${AGENT_SKILLS_PIN:-}" ]] && AGENT_SKILLS_PIN_ARGS=(--pin "$AGENT_SKILLS_PIN")
-[[ -n "${SWIFTUI_EXPERT_PIN:-}" ]] && SWIFTUI_EXPERT_PIN_ARGS=(--pin "$SWIFTUI_EXPERT_PIN")
-
 echo "→ Syncing skills from ${REPO_SLUG} (agent=${AGENT}, scope=${SCOPE}, latest)"
-gh skill install "$REPO_SLUG" --all \
-  --agent "$AGENT" --scope "$SCOPE" \
-  "${AGENT_SKILLS_PIN_ARGS[@]}" \
-  --force
+if [[ -n "${AGENT_SKILLS_PIN:-}" ]]; then
+  gh skill install "$REPO_SLUG" --all --agent "$AGENT" --scope "$SCOPE" --pin "$AGENT_SKILLS_PIN" --force
+else
+  gh skill install "$REPO_SLUG" --all --agent "$AGENT" --scope "$SCOPE" --force
+fi
 
 echo "→ Syncing swiftui-expert-skill from avdlee/swiftui-agent-skill (latest)"
-gh skill install avdlee/swiftui-agent-skill swiftui-expert-skill \
-  --agent "$AGENT" --scope "$SCOPE" \
-  "${SWIFTUI_EXPERT_PIN_ARGS[@]}" \
-  --force
+if [[ -n "${SWIFTUI_EXPERT_PIN:-}" ]]; then
+  gh skill install avdlee/swiftui-agent-skill swiftui-expert-skill \
+    --agent "$AGENT" --scope "$SCOPE" --pin "$SWIFTUI_EXPERT_PIN" --force
+else
+  gh skill install avdlee/swiftui-agent-skill swiftui-expert-skill \
+    --agent "$AGENT" --scope "$SCOPE" --force
+fi
 
 echo "✓ All skills up to date. List installed: gh skill list"
