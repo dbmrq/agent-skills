@@ -77,7 +77,7 @@ Defaults: **`AGENTS=auto`** at **user** scope — fully non-interactive. The scr
 3. Adds every agent-specific dir whose config home already exists on this machine (e.g. `~/.claude`, `~/.codex`), plus any hosts from `gh skill list`
 4. Deduplicates paths (e.g. when `~/.cursor/skills` symlinks to `~/.agents/skills`)
 
-No agent-picker prompts: each install uses `gh skill install … --dir <path> --agent universal --force` (`--dir` sets the path; `--agent` only silences `gh`’s interactive multi-select).
+No agent-picker prompts and no per-directory re-fetch: the script runs `gh skill install` **once** into a staging dir (`--agent universal --dir … --force`), then copies the resulting skill folders into every target.
 
 ```bash
 ./scripts/install-all.sh user          # explicit scope
@@ -86,7 +86,7 @@ AGENTS=pi ./scripts/install-all.sh     # Pi dir only (~/.pi/agent/skills)
 AGENTS=all ./scripts/install-all.sh    # every gh agent user-dir (deduped)
 ```
 
-Installs run once per unique directory (not once per agent id).
+Remote skills are fetched once, then mirrored to each unique directory.
 
 This syncs all skills from **this repo**, **swiftui-expert-skill** from `avdlee/swiftui-agent-skill`, and **Apple's Xcode agent skills** (see below), resolving git-hosted skills to the **latest git tag** (or default-branch HEAD when untagged).
 

@@ -280,19 +280,62 @@ targets_label() {
   printf '%s' "$joined"
 }
 
+# Copy skill folders produced by a staged gh install into a destination.
+mirror_skills() {
+  local src="$1"
+  local dest="$2"
+  local skill_path skill_name
+
+  mkdir -p "$dest"
+  shopt -s nullglob
+  for skill_path in "$src"/*/; do
+    skill_name="$(basename "$skill_path")"
+    rm -rf "${dest}/${skill_name}"
+    cp -R "$skill_path" "${dest}/${skill_name}"
+  done
+  shopt -u nullglob
+}
+
+# Fetch/install once, then mirror into every target dir.
+# Re-running gh skill install per directory re-clones the same repos and can look
+# like a stuck loop (and still prompts for agents on a TTY without --agent).
 install_for_dirs() {
-  local dir
-  for dir in "${INSTALL_DIRS[@]}"; do
-    echo "  → ${dir}"
-    # gh skill install prompts for agents on a TTY unless --agent is set,
-    # even when --dir overrides the install path. Pass a fixed agent id so
-    # multi-dir syncs stay fully non-interactive.
+  local staging dir
+
+  if [[ ${#INSTALL_DIRS[@]} -eq 0 ]]; then
+    echo "✗ No install directories resolved" >&2
+    return 1
+  fi
+
+  if [[ ${#INSTALL_DIRS[@]} -eq 1 ]]; then
+    echo "  → ${INSTALL_DIRS[0]}"
     gh skill install "$@" \
       --agent universal \
       --scope "$SCOPE" \
-      --dir "$dir" \
+      --dir "${INSTALL_DIRS[0]}" \
       --force
-  done
+    return
+  fi
+
+  (
+    set -euo pipefail
+    staging="$(mktemp -d -t agent-skills-stage.XXXXXX)"
+    trap 'rm -rf "$staging"' EXIT
+
+    echo "  → fetch once, then mirror to ${#INSTALL_DIRS[@]} dirs"
+    # --agent is required on a TTY even with --dir; otherwise gh prompts
+    # "Select target agent(s)" on every install call.
+    gh skill install "$@" \
+      --agent universal \
+      --scope "$SCOPE" \
+      --dir "$staging" \
+      --force
+
+    for dir in "${INSTALL_DIRS[@]}"; do
+      echo "  → ${dir}"
+      mirror_skills "$staging" "$dir"
+    done
+  )
 }
 
 install_xcode_skills_from_mirror() {
