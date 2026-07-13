@@ -13,6 +13,7 @@ This repository is the **source of truth for skills maintained here**. Upstream 
 | [ralph-loop](skills/ralph-loop/) | Run and orchestrate Ralph loops — fresh-context agent runs against a Markdown checklist, with guardrails, prompts, and loop scripts. |
 | [ralph-loop-plan](skills/ralph-loop-plan/) | Write implementation plans and checklists sized for Ralph loops — one checkbox per agent run, integration tasks, human gates at the end. |
 | [xcodegen](skills/xcodegen/) | Author and debug XcodeGen `project.yml` specs — merge semantics, settings traps, dependencies, multiplatform targets, schemes, and cache behavior. |
+| [ios-app-store-release](skills/ios-app-store-release/) | Ship iOS apps to App Store Connect — Xcode Cloud, ASC API metadata and screenshots, release manifests, TestFlight, and prepare-for-submission workflows. |
 | [native-swiftui](skills/native-swiftui/) | Build native-looking iOS UIs with highest-level SwiftUI components, system styles, semantic colors, and standard navigation (`NavigationStack`, `GroupBox`, built-in button styles). |
 | [swiftui-view-composition](skills/swiftui-view-composition/) | Structure and refactor SwiftUI views — extract dedicated `View` structs, `ViewModifier`s, and layout helpers for readable, reusable screens instead of bloated `body` properties. |
 | [swiftui-project-structure](skills/swiftui-project-structure/) | Organize SwiftUI repos like Apple samples — feature folders, Swift packages, multiplatform targets, App/Scene wiring, and MV vs Store/ViewModel layer decisions. |
@@ -66,14 +67,24 @@ Requires [GitHub CLI](https://cli.github.com/) with `gh skill` support.
 Install fresh or pull the latest versions — same command either way:
 
 ```bash
-./scripts/install-all.sh cursor user
-```
-
-Defaults: `cursor` + `user` scope if you omit arguments:
-
-```bash
 ./scripts/install-all.sh
 ```
+
+Defaults: **`AGENTS=auto`** at **user** scope. The script:
+
+1. Always syncs to **`~/.agents/skills`** (shared by Cursor, Copilot, Cline, Warp, and [Pi](https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/docs/skills.md))
+2. Also syncs to **`~/.pi/agent/skills`** when `~/.pi` exists (Pi’s native path)
+3. Adds agent-specific dirs detected via `gh skill list`, or from homedir hints on first run (empty skill list)
+4. Deduplicates paths (e.g. when `~/.cursor/skills` symlinks to `~/.agents/skills`)
+
+```bash
+./scripts/install-all.sh user          # explicit scope
+./scripts/install-all.sh cursor user   # legacy: one agent dir only
+AGENTS=pi ./scripts/install-all.sh     # Pi dir only (~/.pi/agent/skills)
+AGENTS=all ./scripts/install-all.sh    # every gh agent user-dir (deduped)
+```
+
+Installs use `gh skill install … --dir <path>` once per unique directory (not once per agent id).
 
 This syncs all skills from **this repo**, **swiftui-expert-skill** from `avdlee/swiftui-agent-skill`, and **Apple's Xcode agent skills** (see below), resolving git-hosted skills to the **latest git tag** (or default-branch HEAD when untagged).
 
@@ -85,7 +96,8 @@ The install script pulls skills **directly from your active Xcode toolchain** wh
 
 ```bash
 xcrun agent skills export --output-dir /tmp/xcode-skills --replace-existing
-gh skill install /tmp/xcode-skills --all --from-local --agent cursor --scope user --force
+gh skill install /tmp/xcode-skills --all --from-local --dir ~/.agents/skills --force
+gh skill install /tmp/xcode-skills --all --from-local --dir ~/.pi/agent/skills --force  # if using Pi
 ```
 
 That export + install is what `./scripts/install-all.sh` runs automatically.
@@ -96,28 +108,29 @@ If export is unavailable (no Xcode, older toolchain, Linux CI), the script falls
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
+| `AGENTS` | `auto` | `auto` = core dirs + `gh skill list` detection; comma-separated agent ids; or `all` |
 | `SKIP_XCODE_SKILLS=1` | off | Skip Apple skills entirely |
 | `XCODE_SKILLS_SOURCE` | `auto` | `auto` = export then mirror fallback; `apple` = export only; `mirror` = mirror only |
 | `XCODE_SKILLS_PIN=<sha>` | — | Pin mirror ref (mirror source only) |
 
 Manifest: [`external-skills.json`](external-skills.json) (`xcode_skills` section).
 
-**Note:** Apple's export may rename skills between Xcode releases (e.g. `modernize-tests` vs mirror's `test-modernizer`). Re-run `./scripts/install-all.sh` after upgrading Xcode to pick up renames; remove stale skill folders under `~/.cursor/skills/` if needed.
+**Note:** Apple's export may rename skills between Xcode releases (e.g. `modernize-tests` vs mirror's `test-modernizer`). Re-run `./scripts/install-all.sh` after upgrading Xcode to pick up renames; remove stale skill folders under your agent skills directories if needed.
 
 ### This repo only
 
 ```bash
 # One skill
-gh skill install dbmrq/agent-skills <skill-name> --agent cursor --scope user
+gh skill install dbmrq/agent-skills <skill-name> --dir ~/.agents/skills --force
 
 # Every skill in this repo (latest)
-gh skill install dbmrq/agent-skills --all --agent cursor --scope user
+gh skill install dbmrq/agent-skills --all --dir ~/.agents/skills --force
 ```
 
 ### Upstream expert skill only
 
 ```bash
-gh skill install avdlee/swiftui-agent-skill swiftui-expert-skill --agent cursor --scope user
+gh skill install avdlee/swiftui-agent-skill swiftui-expert-skill --dir ~/.agents/skills --force
 ```
 
 ### Apple Xcode skills only
@@ -127,14 +140,15 @@ From toolchain (requires Xcode 26+):
 ```bash
 export_dir="$(mktemp -d)"
 xcrun agent skills export --output-dir "$export_dir" --replace-existing
-gh skill install "$export_dir" --all --from-local --agent cursor --scope user --force
+gh skill install "$export_dir" --all --from-local --dir ~/.agents/skills --force
+gh skill install "$export_dir" --all --from-local --dir ~/.pi/agent/skills --force
 rm -rf "$export_dir"
 ```
 
 From mirror (no Xcode required):
 
 ```bash
-gh skill install superagents-lab/xcode27-skills --all --agent cursor --scope user --force
+gh skill install superagents-lab/xcode27-skills --all --dir ~/.agents/skills --force
 ```
 
 ### Pinning (optional)
@@ -146,7 +160,18 @@ AGENT_SKILLS_PIN=v1.0.0 SWIFTUI_EXPERT_PIN=4.0.0 ./scripts/install-all.sh
 XCODE_SKILLS_SOURCE=mirror XCODE_SKILLS_PIN=6f9ff8d ./scripts/install-all.sh
 ```
 
-Common `--agent` values: `cursor`, `claude-code`, `github-copilot`, `codex`, `augment`, `cline`, `warp`. Use `--scope user` for skills available in all projects, or `--scope project` for repo-local installs.
+### Shared install locations
+
+| Path | Read by |
+|------|---------|
+| `~/.agents/skills` | Cline, Warp, Universal; Cursor/Copilot/Augment when symlinked; **Pi** (global) |
+| `~/.pi/agent/skills` | **Pi** (native path) |
+| `~/.claude/skills` | Claude Code |
+| `~/.codex/skills` | Codex |
+
+`AGENTS=auto` installs to the shared hub plus Pi (when `~/.pi` exists), then any extra dirs for agents already present on your machine.
+
+Common `--agent` values for manual `gh skill install`: `cursor`, `claude-code`, `github-copilot`, `codex`, `gemini-cli`, `pi`, `cline`, `warp`. Run `gh skill install --help` for the full list. Prefer `--dir ~/.agents/skills` when you want one copy for multiple agents.
 
 ## Repository layout
 
