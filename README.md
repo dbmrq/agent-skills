@@ -70,12 +70,14 @@ Install fresh or pull the latest versions — same command either way:
 ./scripts/install-all.sh
 ```
 
-Defaults: **`AGENTS=auto`** at **user** scope. The script:
+Defaults: **`AGENTS=auto`** at **user** scope — fully non-interactive. The script:
 
 1. Always syncs to **`~/.agents/skills`** (shared by Cursor, Copilot, Cline, Warp, and [Pi](https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/docs/skills.md))
 2. Also syncs to **`~/.pi/agent/skills`** when `~/.pi` exists (Pi’s native path)
-3. Adds agent-specific dirs detected via `gh skill list`, or from homedir hints on first run (empty skill list)
+3. Adds every agent-specific dir whose config home already exists on this machine (e.g. `~/.claude`, `~/.codex`), plus any hosts from `gh skill list`
 4. Deduplicates paths (e.g. when `~/.cursor/skills` symlinks to `~/.agents/skills`)
+
+No agent-picker prompts: each install uses `gh skill install … --dir <path> --agent universal --force` (`--dir` sets the path; `--agent` only silences `gh`’s interactive multi-select).
 
 ```bash
 ./scripts/install-all.sh user          # explicit scope
@@ -84,7 +86,7 @@ AGENTS=pi ./scripts/install-all.sh     # Pi dir only (~/.pi/agent/skills)
 AGENTS=all ./scripts/install-all.sh    # every gh agent user-dir (deduped)
 ```
 
-Installs use `gh skill install … --dir <path>` once per unique directory (not once per agent id).
+Installs run once per unique directory (not once per agent id).
 
 This syncs all skills from **this repo**, **swiftui-expert-skill** from `avdlee/swiftui-agent-skill`, and **Apple's Xcode agent skills** (see below), resolving git-hosted skills to the **latest git tag** (or default-branch HEAD when untagged).
 
@@ -108,7 +110,7 @@ If export is unavailable (no Xcode, older toolchain, Linux CI), the script falls
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `AGENTS` | `auto` | `auto` = core dirs + `gh skill list` detection; comma-separated agent ids; or `all` |
+| `AGENTS` | `auto` | `auto` = core dirs + every agent config dir already present; comma-separated agent ids; or `all` |
 | `SKIP_XCODE_SKILLS=1` | off | Skip Apple skills entirely |
 | `XCODE_SKILLS_SOURCE` | `auto` | `auto` = export then mirror fallback; `apple` = export only; `mirror` = mirror only |
 | `XCODE_SKILLS_PIN=<sha>` | — | Pin mirror ref (mirror source only) |
@@ -169,7 +171,7 @@ XCODE_SKILLS_SOURCE=mirror XCODE_SKILLS_PIN=6f9ff8d ./scripts/install-all.sh
 | `~/.claude/skills` | Claude Code |
 | `~/.codex/skills` | Codex |
 
-`AGENTS=auto` installs to the shared hub plus Pi (when `~/.pi` exists), then any extra dirs for agents already present on your machine.
+`AGENTS=auto` installs to the shared hub plus Pi (when `~/.pi` exists), then every extra agent dir already present on your machine — no prompts.
 
 Common `--agent` values for manual `gh skill install`: `cursor`, `claude-code`, `github-copilot`, `codex`, `gemini-cli`, `pi`, `cline`, `warp`. Run `gh skill install --help` for the full list. Prefer `--dir ~/.agents/skills` when you want one copy for multiple agents.
 
