@@ -10,6 +10,7 @@ This repository is the **source of truth for skills maintained here**. Upstream 
 
 | Skill | When to use |
 |-------|-------------|
+| [manage-agent-skills](skills/manage-agent-skills/) | Create, update, release, and sync skills in **this** repo — source of truth for personal Agent Skills; commit/push/publish + `install-all.sh`. |
 | [ralph-loop](skills/ralph-loop/) | Run and orchestrate Ralph loops — fresh-context agent runs against a Markdown checklist, with guardrails, prompts, and loop scripts. |
 | [ralph-loop-plan](skills/ralph-loop-plan/) | Write implementation plans and checklists sized for Ralph loops — one checkbox per agent run, integration tasks, human gates at the end. |
 | [xcodegen](skills/xcodegen/) | Author and debug XcodeGen `project.yml` specs — merge semantics, settings traps, dependencies, multiplatform targets, schemes, and cache behavior. |
@@ -188,7 +189,9 @@ skills/
 
 ## Maintainer workflow
 
-**Clone and edit** (do not edit files under `~/.cursor/skills/` directly — installs are copies that `gh skill update` overwrites):
+Agents and humans: use the **[manage-agent-skills](skills/manage-agent-skills/)** skill for the full create/update/release loop. Summary below.
+
+**Clone and edit** (do not edit under `~/.cursor/skills/` or other agent install dirs — those are copies that sync overwrites):
 
 ```bash
 git clone https://github.com/dbmrq/agent-skills.git
