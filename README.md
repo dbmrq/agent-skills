@@ -189,7 +189,7 @@ skills/
 
 ## Maintainer workflow
 
-Agents and humans: use the **[manage-agent-skills](skills/manage-agent-skills/)** skill for the full create/update/release loop. Summary below.
+Agents and humans: use the **[manage-agent-skills](skills/manage-agent-skills/)** skill for the full create/update/release loop. Summary below. Default is **commit and push to `main`** (no PRs), then tag and `./scripts/install-all.sh`.
 
 **Clone and edit** (do not edit under `~/.cursor/skills/` or other agent install dirs — those are copies that sync overwrites):
 
@@ -203,16 +203,17 @@ cd agent-skills
 
 ```bash
 gh skill publish --dry-run       # validate all skills
-gh skill publish --tag v1.1.0    # create GitHub release
+# bump from latest *remote* release tag (gh release list), not stale local tags
+gh skill publish --tag v1.6.0    # create GitHub release
 ./scripts/install-all.sh         # refresh local installs to latest
 ```
 
 **Adding a new skill:**
 
-1. Create `skills/<skill-name>/SKILL.md` with valid frontmatter (`name`, `description`).
+1. Create `skills/<skill-name>/SKILL.md` with valid frontmatter (`name`, `description`). Check overlap with existing local skills, `external-skills.json`, and Xcode skills.
 2. Ensure `name` in frontmatter matches the directory name.
 3. Add a row to the catalog table in this README.
-4. Run `gh skill publish --dry-run`, commit, push, and publish a new tag.
+4. Run `gh skill publish --dry-run`, commit, push to `main`, and publish a new tag.
 
 ## License
 

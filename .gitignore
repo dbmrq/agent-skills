@@ -1,1 +1,4 @@
 .DS_Store
+
+# Local/project install trees from gh skill / install-all (never publish)
+.agents/
