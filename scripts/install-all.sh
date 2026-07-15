@@ -26,9 +26,6 @@
 #
 # Apple Xcode skills (optional):
 #   SKIP_XCODE_SKILLS=1 ./scripts/install-all.sh
-#   XCODE_SKILLS_SOURCE=mirror ./scripts/install-all.sh
-#   XCODE_SKILLS_SOURCE=apple ./scripts/install-all.sh
-#   XCODE_SKILLS_PIN=6f9ff8d ./scripts/install-all.sh
 
 set -euo pipefail
 
@@ -266,7 +263,6 @@ if [[ ${#INSTALL_DIRS[@]} -eq 0 ]]; then
 fi
 
 REPO_SLUG="$(gh repo view --json nameWithOwner -q .nameWithOwner 2>/dev/null || echo "dbmrq/agent-skills")"
-XCODE_SKILLS_MIRROR="superagents-lab/xcode27-skills"
 
 targets_label() {
   local joined=""
@@ -338,35 +334,10 @@ install_for_dirs() {
   )
 }
 
-install_xcode_skills_from_mirror() {
-  echo "→ Syncing Apple Xcode skills from ${XCODE_SKILLS_MIRROR} (mirror)"
-  if [[ -n "${XCODE_SKILLS_PIN:-}" ]]; then
-    install_for_dirs "$XCODE_SKILLS_MIRROR" --all --pin "$XCODE_SKILLS_PIN"
-  else
-    install_for_dirs "$XCODE_SKILLS_MIRROR" --all
-  fi
-}
-
 install_xcode_skills() {
-  local source="${XCODE_SKILLS_SOURCE:-auto}"
-
-  if [[ "$source" != "auto" && "$source" != "apple" && "$source" != "mirror" ]]; then
-    echo "✗ XCODE_SKILLS_SOURCE must be auto, apple, or mirror (got: $source)" >&2
-    exit 1
-  fi
-
-  if [[ "$source" == "mirror" ]]; then
-    install_xcode_skills_from_mirror
-    return
-  fi
-
   if ! command -v xcrun >/dev/null 2>&1; then
-    if [[ "$source" == "apple" ]]; then
-      echo "✗ xcrun not found; cannot export Apple Xcode skills" >&2
-      exit 1
-    fi
-    echo "⚠ xcrun not found; falling back to ${XCODE_SKILLS_MIRROR}" >&2
-    install_xcode_skills_from_mirror
+    echo "⚠ xcrun not found; skipping Apple Xcode skills." >&2
+    echo "  Install Xcode 26+ and select it in Settings → Locations → Command Line Tools to export Apple skills." >&2
     return
   fi
 
@@ -376,22 +347,20 @@ install_xcode_skills() {
   trap cleanup_export RETURN
 
   echo "→ Exporting Apple Xcode skills from toolchain (xcrun agent skills export)"
-  if xcrun agent skills export --output-dir "$export_dir" --replace-existing; then
-    echo "→ Installing exported Apple Xcode skills"
-    install_for_dirs "$export_dir" --all --from-local
+  if ! xcrun agent skills export --output-dir "$export_dir" --replace-existing; then
+    echo "⚠ xcrun agent skills export failed; skipping Apple Xcode skills." >&2
+    echo "  Ensure Xcode 26+ is installed and selected in Settings → Locations → Command Line Tools." >&2
     return
   fi
 
-  if [[ "$source" == "apple" ]]; then
-    echo "✗ xcrun agent skills export failed (XCODE_SKILLS_SOURCE=apple)" >&2
-    echo "  Ensure Xcode 26+ is installed and selected in Settings → Locations → Command Line Tools." >&2
-    exit 1
+  if ! find "$export_dir" -name SKILL.md -print -quit | grep -q .; then
+    echo "⚠ xcrun agent skills export returned no skills; skipping Apple Xcode skills." >&2
+    echo "  This commonly means the active Xcode toolchain doesn't include the exported Apple skills yet." >&2
+    return
   fi
 
-  echo "⚠ Export failed; falling back to ${XCODE_SKILLS_MIRROR}" >&2
-  trap - RETURN
-  cleanup_export
-  install_xcode_skills_from_mirror
+  echo "→ Installing exported Apple Xcode skills"
+  install_for_dirs "$export_dir" --all --from-local
 }
 
 echo "→ Syncing skills from ${REPO_SLUG} (AGENTS=${AGENTS_CSV}, scope=${SCOPE}, latest)"

@@ -14,11 +14,6 @@
       "method": "xcrun agent skills export",
       "notes": "Exports the latest skills from the active Xcode toolchain. Requires Xcode 26+ with Command Line Tools set to that Xcode."
     },
-    "fallback_source": {
-      "repository": "superagents-lab/xcode27-skills",
-      "url": "https://github.com/superagents-lab/xcode27-skills",
-      "notes": "Community mirror used when export is unavailable (no Xcode, older toolchain, or XCODE_SKILLS_SOURCE=mirror)."
-    },
     "skills": [
       "swiftui-specialist",
       "swiftui-whats-new-27",

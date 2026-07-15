@@ -58,7 +58,7 @@ Seven Apple-authored skills ship inside Xcode and are **not stored in this repo*
 | `c-bounds-safety` | `-fbounds-safety` adoption, review, and debugging in C code |
 | `device-interaction` | Verify app behavior on device or simulator (screenshots, UI hierarchy, touch) |
 
-Source priority: **Xcode export** (`xcrun agent skills export`) → fallback **mirror** ([superagents-lab/xcode27-skills](https://github.com/superagents-lab/xcode27-skills)). See [Install and update](#install-and-update) for env vars and requirements.
+Source: **Xcode export** only (`xcrun agent skills export`). If the active toolchain doesn't provide skills, the install script warns and skips them gracefully.
 
 ## Install and update
 
@@ -108,18 +108,16 @@ That export + install is what `./scripts/install-all.sh` runs automatically.
 
 **Requirements:** Xcode 26+ installed, with **Settings → Locations → Command Line Tools** set to that Xcode.
 
-If export is unavailable (no Xcode, older toolchain, Linux CI), the script falls back to the community mirror [`superagents-lab/xcode27-skills`](https://github.com/superagents-lab/xcode27-skills).
+If export is unavailable or returns no skills (for example on machines without the needed Xcode beta/toolchain), the script warns and skips Apple Xcode skills without failing the overall install.
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
 | `AGENTS` | `auto` | `auto` = core dirs + every agent config dir already present; comma-separated agent ids; or `all` |
 | `SKIP_XCODE_SKILLS=1` | off | Skip Apple skills entirely |
-| `XCODE_SKILLS_SOURCE` | `auto` | `auto` = export then mirror fallback; `apple` = export only; `mirror` = mirror only |
-| `XCODE_SKILLS_PIN=<sha>` | — | Pin mirror ref (mirror source only) |
 
 Manifest: [`external-skills.json`](external-skills.json) (`xcode_skills` section).
 
-**Note:** Apple's export may rename skills between Xcode releases (e.g. `modernize-tests` vs mirror's `test-modernizer`). Re-run `./scripts/install-all.sh` after upgrading Xcode to pick up renames; remove stale skill folders under your agent skills directories if needed.
+**Note:** Apple's export may rename skills between Xcode releases. Re-run `./scripts/install-all.sh` after upgrading Xcode to pick up renames; remove stale skill folders under your agent skills directories if needed.
 
 ### This repo only
 
@@ -149,19 +147,12 @@ gh skill install "$export_dir" --all --from-local --dir ~/.pi/agent/skills --for
 rm -rf "$export_dir"
 ```
 
-From mirror (no Xcode required):
-
-```bash
-gh skill install superagents-lab/xcode27-skills --all --dir ~/.agents/skills --force
-```
-
 ### Pinning (optional)
 
 For reproducible CI or debugging, pass pins via environment variables:
 
 ```bash
 AGENT_SKILLS_PIN=v1.0.0 SWIFTUI_EXPERT_PIN=4.0.0 ./scripts/install-all.sh
-XCODE_SKILLS_SOURCE=mirror XCODE_SKILLS_PIN=6f9ff8d ./scripts/install-all.sh
 ```
 
 ### Shared install locations
