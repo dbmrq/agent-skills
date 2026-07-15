@@ -100,6 +100,7 @@ gh skill publish --tag vX.Y.Z
 Resolve `latest` with `gh release list` or `git ls-remote --tags origin` — **not** `git tag` alone.
 
 - Prefer `./scripts/install-all.sh` over per-agent `gh skill install`.
+- Apple Xcode skills are sourced **only** from `xcrun agent skills export`. If the active Xcode toolchain exports no skills (for example no Xcode beta on this machine yet), `./scripts/install-all.sh` should **warn and skip** them without failing the overall sync.
 - Skill commits may ship without re-asking even when other projects say “ask before commit.” Still: no force-push, no amending others’ commits, no skipping hooks.
 
 ### Post-sync verification
