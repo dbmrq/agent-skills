@@ -130,20 +130,9 @@ After upload, PATCH build: `usesNonExemptEncryption: false` (and set `ITSAppUses
 
 ## Screenshots (non-obvious)
 
-**Do not** rely on `launchEnvironment`/`launchArguments` passed through `xcodebuild` shell env for UI tests — use **XCTest attachments** + export:
+Deep capture / compose / ASC upload workflow: **[ios-app-store-screenshots](../ios-app-store-screenshots/SKILL.md)**.
 
-```bash
-xcodebuild test -resultBundlePath build/screenshot.xcresult ...
-xcrun xcresulttool export attachments --path build/screenshot.xcresult --output-path staging/
-```
-
-Honor `SCREENSHOT_BASENAME` when exporting (attachment suggested names may not match device).
-
-Pipeline: raw simulator capture → `compose_store_assets.py` (Pillow + `scenes.yaml`) → `upload_store_assets.py --version X.Y`.
-
-Register **`accessibilityIdentifier`** on key UI for stable UI tests.
-
-Simulator names drift (`iPhone 17 Pro Max`, `iPad Pro 13-inch (M5)`) — pin in capture script, update when Xcode adds devices.
+Summary for ship pipelines: raw simulator capture → `compose_store_assets.py` (Pillow + `scenes.yaml`) → `upload_store_assets.py --version X.Y`. Use XCTest attachments + `SCREENSHOT_BASENAME` export (do not rely on `xcodebuild` shell env for launch args). Pin simulator names; gate DemoMode with `#if DEBUG`.
 
 ## Demo / mock data (critical)
 
@@ -205,6 +194,7 @@ After `asc-sync`, confirm:
 
 ## Related skills
 
+- [ios-app-store-screenshots](../ios-app-store-screenshots/SKILL.md) — capture, compose, and upload store screenshots only
 - [xcodegen](../xcodegen/SKILL.md) — spec-driven projects + Cloud post-clone
 - [device-interaction](https://github.com/superagents-lab/xcode27-skills) — simulator verification (Apple toolchain export)
 - [swiftui-expert-skill](https://github.com/avdlee/swiftui-agent-skill) — UI performance while building screenshot flows
