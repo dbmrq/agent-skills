@@ -177,7 +177,57 @@ Ask before extracting:
 
 ### Rule of three (abstraction guard)
 
-Promote a view to a **shared, generic primitive** only after **three concrete uses** with the same behavior. Before that, keep it feature-local — screen-specific APIs are fine and avoid parameter hell.
+Promote a view to a **shared, generic primitive** only after **three concrete uses** with the same behavior. Before that, keep it feature-local — screen-specific APIs are fine; do not invent a 12-parameter “configurable” view to force reuse.
+
+## Configuration objects (avoid long initializers)
+
+When a view would take roughly **four or more** related parameters — especially mixed data, bindings, and action closures — wrap them in a dedicated configuration (or actions) struct and pass that instead of a flat parameter list.
+
+```swift
+// Avoid
+struct ItemRow: View {
+    let title: String
+    let subtitle: String?
+    let isCompact: Bool
+    let onTitleChange: (String) -> Void
+    let onDelete: () -> Void
+    let onIndent: () -> Void
+    // …
+}
+
+// Prefer
+struct ItemRowConfiguration {
+    var title: String
+    var subtitle: String?
+    var actions: ItemRowActions
+}
+
+struct ItemRow: View {
+    let configuration: ItemRowConfiguration
+}
+```
+
+Keep configuration types **feature-local** and one primary type per file. Prefer small, named bags (`…Configuration`, `…Actions`) over generic “options” dictionaries.
+
+## Display-mode sibling views
+
+Do **not** branch compact/comfortable (or similar display modes) throughout a single `body`. Create separate views for each mode and toggle at the parent; share metrics/constants in a layout/chrome enum so mode switches stay visually stable.
+
+```swift
+// Avoid
+var body: some View {
+    if isCompact { /* compact layout */ } else { /* comfortable layout */ }
+}
+
+// Prefer
+var body: some View {
+    if isCompact {
+        CompactItemRowBody(configuration: configuration)
+    } else {
+        ComfortableItemRowBody(configuration: configuration)
+    }
+}
+```
 
 ## Refactor walkthrough
 
@@ -249,8 +299,9 @@ More patterns: [extraction-patterns.md](extraction-patterns.md).
 
 ## File and folder conventions
 
-- **One primary `View` per file**; name file after the view (`ArticleRow.swift`).
+- **One primary type per file**; name the file after the type (`ArticleRow.swift`, `ItemRowActions.swift`).
 - **Co-locate by feature** — `Articles/ArticleListView.swift`, `Articles/ArticleRow.swift` — not global `Views/` dumps. For repo-level layout (packages, targets, `Navigation/`, when to add a Store), see **`swiftui-project-structure`**.
+- Within a feature, use **semantic subfolders** when the file count grows (e.g. `Editor/Row/`, `Editor/Chrome/`, `Editor/Layout/`) so related types stay findable.
 - **Shared primitives** — only after rule-of-three; e.g. `DesignSystem/ElevatedSurface.swift` or a small Swift package.
 - **`// MARK: -`** for properties, body, helpers; protocol conformance in extensions.
 
@@ -285,7 +336,9 @@ Before finishing a refactor:
 - [ ] Repeated styling extracted to modifier — or replaced with system styles (`native-swiftui`)
 - [ ] No premature generic abstractions (rule of three)
 - [ ] Previews cover main states per extracted view
-- [ ] Files grouped by feature, one view type per file
+- [ ] Files grouped by feature (and semantic subfolders when needed), one primary type per file
+- [ ] Long initializers collapsed into configuration/actions objects
+- [ ] Display modes use sibling views + shared constants, not heavy `if isCompact` bodies
 - [ ] Business logic not embedded in `body` — delegate to model methods or `.task`
 
 ## Related skills
