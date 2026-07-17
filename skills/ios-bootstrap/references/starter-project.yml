@@ -36,7 +36,6 @@ targets:
         script: |
           set -euo pipefail
           # Xcode GUI builds use a minimal PATH that omits Homebrew.
-          # Do not use ${PATH} here — XcodeGen expands it at generate time.
           export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
           cd "${SRCROOT}"
           if [[ -x ./scripts/check.sh ]]; then
