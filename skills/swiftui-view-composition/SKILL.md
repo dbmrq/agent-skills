@@ -52,6 +52,23 @@ extension ArticleListView {
 
 **Prefer separate `struct` views** for anything with its own concern, multiple states, or reuse potential. Separate structs also let SwiftUI skip `body` re-evaluation when inputs are unchanged (see `swiftui-expert-skill` view-structure guidance).
 
+## Cross-file extensions
+
+Splitting a **type** across files (e.g. `NoteStore+Notes.swift` for SwiftLint length limits) is fine for stores/models. That is not the same as dumping `body` into extension computed properties.
+
+**Access control:** `private` and `private(set)` are **file-private**. Extensions in *other* files cannot read or assign those members — you get “setter is inaccessible” / “inaccessible due to private”. Widen anything shared across those files to **`internal`** (omit the keyword). Keep `private` only for helpers that stay in the defining file.
+
+```swift
+// NoteStore.swift — OK for cross-file extensions
+var snapshot: VaultSnapshot   // internal
+var isLoaded = false
+
+// NoteStore.swift — NOT OK if NoteStore+Loading.swift assigns it
+private(set) var isLoaded = false
+```
+
+After splits: `xcodegen generate` (if used), build, then `./scripts/check.sh` and `./scripts/deadcode.sh` (see **ios-quality-gate**).
+
 ## Three extraction techniques
 
 ### 1. Extract dedicated SwiftUI views

@@ -13,6 +13,8 @@ Enforce the shared [ai-rules-ios](https://github.com/dbmrq/ai-rules-ios) plug-in
 
 If `.ai-rules/` is missing, run **[ios-bootstrap](../ios-bootstrap/SKILL.md)** (not an ad-hoc lint setup).
 
+**Periphery detail:** [references/periphery-traps.md](references/periphery-traps.md) · historical debt checklist: `.ai-rules/quality/debt/RATCHET.md`
+
 ## Agent workflow
 
 1. Confirm `.ai-rules/quality/` and `./scripts/check.sh` exist. If not:
@@ -20,9 +22,9 @@ If `.ai-rules/` is missing, run **[ios-bootstrap](../ios-bootstrap/SKILL.md)** (
    then complete ios-bootstrap wiring (Periphery scheme, warnings-as-errors, Quality Check script).
 2. `./scripts/format.sh --fix` if you touched Swift files.
 3. `./scripts/check.sh` — fix **every** violation (there is no warning-only debt in the shared config).
-4. After removals / renames / structural edits: build, then `./scripts/deadcode.sh` or `./scripts/check-all.sh`. **No baselines** — delete unused declarations Periphery reports (`--strict`).
+4. After removals / renames / structural edits: build, then `./scripts/deadcode.sh` or `./scripts/check-all.sh`. **No baselines** — delete unused declarations Periphery reports (`--strict`). See [periphery-traps.md](references/periphery-traps.md) if the scan fails to build or reports nonsense.
 5. Do not leave store/domain wrappers without callers. Never reintroduce `!` / `as!`.
-6. Optional: `.ai-rules/quality/scripts/debt-report.sh` for a count summary.
+6. Optional: `.ai-rules/quality/scripts/debt-report.sh` for a count summary (uses `/tmp/<App>PeripheryDD` when present).
 
 ## Hard-won rules
 
@@ -31,3 +33,4 @@ If `.ai-rules/` is missing, run **[ios-bootstrap](../ios-bootstrap/SKILL.md)** (
 - Edit scheme-specific `.periphery.yml` only; shared SwiftLint stays in the plug-in.
 - `xcodegen generate` after adding `Sources/` files in XcodeGen apps.
 - Confirm `SWIFT_TREAT_WARNINGS_AS_ERRORS: YES` remains on Swift targets.
+- When splitting a type across files for length limits, members other files must read or assign cannot be `private` / `private(set)` — use `internal` (see [swiftui-view-composition](../swiftui-view-composition/SKILL.md#cross-file-extensions)).
