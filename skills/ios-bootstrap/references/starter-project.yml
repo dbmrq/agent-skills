@@ -1,0 +1,56 @@
+# Minimal XcodeGen starter for a single iOS app + unit tests.
+# Copy to project.yml, replace AppName / bundle ids, then: xcodegen generate
+#
+# Quality: after ai-rules-ios install, keep SWIFT_TREAT_WARNINGS_AS_ERRORS and
+# the Quality Check preBuildScript. See ios-bootstrap skill.
+
+name: AppName
+options:
+  bundleIdPrefix: co.example
+  deploymentTarget:
+    iOS: "18.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+
+settings:
+  base:
+    SWIFT_TREAT_WARNINGS_AS_ERRORS: "YES"
+    SWIFT_VERSION: "6.0"
+
+targets:
+  AppName:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sources/AppName
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: co.example.AppName
+        GENERATE_INFOPLIST_FILE: YES
+        # Required so ./scripts/check.sh can run from the Quality Check phase
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
+        SWIFT_TREAT_WARNINGS_AS_ERRORS: "YES"
+    preBuildScripts:
+      - name: Quality Check
+        basedOnDependencyAnalysis: false
+        script: |
+          set -euo pipefail
+          cd "${SRCROOT}"
+          if [[ -x ./scripts/check.sh ]]; then
+            ./scripts/check.sh
+          fi
+    scheme:
+      testTargets:
+        - AppNameTests
+
+  AppNameTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: Tests/AppNameTests
+    dependencies:
+      - target: AppName
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        SWIFT_TREAT_WARNINGS_AS_ERRORS: "YES"

@@ -11,11 +11,12 @@ This repository is the **source of truth for skills maintained here**. Upstream 
 | Skill | When to use |
 |-------|-------------|
 | [manage-agent-skills](skills/manage-agent-skills/) | Create, update, release, and sync skills in **this** repo — source of truth for personal Agent Skills; commit/push/publish + `install-all.sh`. |
-| [ios-quality-gate](skills/ios-quality-gate/) | Run `./scripts/check.sh` / Periphery before finishing Melvil, Gregor, or other ai-rules-ios apps. |
-| [bootstrap-ios-repo](skills/bootstrap-ios-repo/) | Install ai-rules-ios (rules + quality plug-in) into a new or existing iOS app. |
+| [ios-bootstrap](skills/ios-bootstrap/) | Scaffold a new iOS app: XcodeGen, ai-rules-ios, SwiftLint/SwiftFormat/Periphery, warnings-as-errors. |
+| [ios-quality-gate](skills/ios-quality-gate/) | Run `./scripts/check.sh` / Periphery `--strict` before finishing Melvil, Gregor, or other ai-rules-ios apps. |
+| [bootstrap-ios-repo](skills/bootstrap-ios-repo/) | Deprecated alias → **ios-bootstrap** (kept for older prompts). |
 | [ralph-loop](skills/ralph-loop/) | Run and orchestrate Ralph loops — fresh-context agent runs against a Markdown checklist, with guardrails, prompts, and loop scripts. |
 | [ralph-loop-plan](skills/ralph-loop-plan/) | Write implementation plans and checklists sized for Ralph loops — one checkbox per agent run, integration tasks, human gates at the end. |
-| [xcodegen](skills/xcodegen/) | Author and debug XcodeGen `project.yml` specs — merge semantics, settings traps, dependencies, multiplatform targets, schemes, and cache behavior. |
+| [xcodegen](skills/xcodegen/) | Deep XcodeGen `project.yml` reference — merge semantics, settings traps, dependencies (new apps: prefer **ios-bootstrap**). |
 | [ios-app-store-release](skills/ios-app-store-release/) | Ship iOS apps to App Store Connect — Xcode Cloud, ASC API metadata and screenshots, release manifests, TestFlight, and prepare-for-submission workflows. |
 | [ios-app-store-screenshots](skills/ios-app-store-screenshots/) | Capture, compose, and upload App Store screenshots — UI tests, xcresult export, marketing frames, ASC screenshot sets (without a full release ship). |
 | [apple-foundation-models](skills/apple-foundation-models/) | Integrate Apple Foundation Models into iOS apps — availability gates, on-device prompting, guided generation, tool calling, Private Cloud Compute, token budgeting, locale handling, and model-version prompt updates. |

@@ -80,7 +80,7 @@ Backyard Birds widgets use App Intents and shared data from packages — the wid
 
 ## XcodeGen note
 
-If the project uses XcodeGen, declare local packages under `packages:` and link per-target. See `xcodegen` skill for `localPackagesGroup`, `excludeFromProject`, and dependency syntax.
+If the project uses XcodeGen, declare local packages under `packages:` and link per-target. See the **xcodegen** skill for traps, or **ios-bootstrap** when scaffolding a new app with quality gates.
 
 ## Environment and configuration
 

@@ -3,14 +3,18 @@ name: xcodegen
 description: >-
   Author and debug XcodeGen project.yml specs — merge semantics, settings
   pitfalls, source filtering, dependency integration, multiplatform targets,
-  schemes, and cache/CLI behavior. Use when creating or editing project.yml,
-  project.yaml, XcodeGen specs, generated .xcodeproj issues, or when the user
-  mentions XcodeGen, xcodegen generate, or spec-driven Xcode projects.
+  schemes, and cache/CLI behavior. Use when editing an existing project.yml /
+  project.yaml, fixing generated .xcodeproj issues, or when the user mentions
+  XcodeGen, xcodegen generate, or spec-driven Xcode projects. For scaffolding a
+  new iOS app (folders + ai-rules quality gates + warnings-as-errors), use
+  ios-bootstrap instead.
 ---
 
 # XcodeGen
 
 Spec reference: [ProjectSpec](https://github.com/yonaskolb/XcodeGen/blob/master/Docs/ProjectSpec.md) · [Usage](https://github.com/yonaskolb/XcodeGen/blob/master/Docs/Usage.md)
+
+**New apps:** use **[ios-bootstrap](../ios-bootstrap/SKILL.md)** first (starter `project.yml`, ai-rules-ios, SwiftLint/SwiftFormat/Periphery, `SWIFT_TREAT_WARNINGS_AS_ERRORS`). This skill is the deep XcodeGen reference.
 
 Assume the agent knows YAML and that XcodeGen generates `.xcodeproj` from a spec. This skill covers behavior that is easy to get wrong.
 
@@ -20,6 +24,33 @@ Assume the agent knows YAML and that XcodeGen generates `.xcodeproj` from a spec
 2. After changes, run `xcodegen generate` (add `--use-cache` only when the repo already uses caching hooks).
 3. On unexpected output, run `xcodegen dump --type json` to inspect the **resolved** spec after includes/templates merge.
 4. Build in Xcode or `xcodebuild` to confirm targets, schemes, and dependencies — generation succeeding does not prove linking is correct.
+
+## Required quality settings (Leio / ai-rules apps)
+
+When the repo uses [ai-rules-ios](https://github.com/dbmrq/ai-rules-ios), every Swift target must include:
+
+```yaml
+settings:
+  base:
+    SWIFT_TREAT_WARNINGS_AS_ERRORS: "YES"
+```
+
+The application target that runs the Quality Check script also needs:
+
+```yaml
+settings:
+  base:
+    ENABLE_USER_SCRIPT_SANDBOXING: NO
+preBuildScripts:
+  - name: Quality Check
+    basedOnDependencyAnalysis: false
+    script: |
+      set -euo pipefail
+      cd "${SRCROOT}"
+      ./scripts/check.sh
+```
+
+Snippets live under `.ai-rules/quality/xcodegen/` after install. Do not invent a second lint stack inside `project.yml`.
 
 ## Include merge semantics
 

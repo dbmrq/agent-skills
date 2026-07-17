@@ -18,7 +18,8 @@ Organize SwiftUI projects the way Apple’s sample apps do: **feature-first fold
 - **`swiftui-view-composition`** — extracting views inside a feature; one view per file
 - **`native-swiftui`** — which system components and styles to use
 - **`swiftui-expert-skill`** — property wrappers, performance, concurrency ([avdlee/swiftui-agent-skill](https://github.com/avdlee/swiftui-agent-skill); install via `./scripts/install-all.sh`)
-- **`xcodegen`** — `project.yml` when the repo uses XcodeGen
+- **`ios-bootstrap`** — greenfield / onboarding: XcodeGen starter + ai-rules quality gates
+- **`xcodegen`** — deep `project.yml` traps once the repo already uses XcodeGen
 
 ## Agent workflow
 

@@ -195,7 +195,8 @@ After `asc-sync`, confirm:
 ## Related skills
 
 - [ios-app-store-screenshots](../ios-app-store-screenshots/SKILL.md) — capture, compose, and upload store screenshots only
-- [xcodegen](../xcodegen/SKILL.md) — spec-driven projects + Cloud post-clone
+- [xcodegen](../xcodegen/SKILL.md) — deep XcodeGen traps for existing specs
+- [ios-bootstrap](../ios-bootstrap/SKILL.md) — new app + quality gate scaffolding
 - [device-interaction](https://github.com/superagents-lab/xcode27-skills) — simulator verification (Apple toolchain export)
 - [swiftui-expert-skill](https://github.com/avdlee/swiftui-agent-skill) — UI performance while building screenshot flows
 
