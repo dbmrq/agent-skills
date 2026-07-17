@@ -11,6 +11,8 @@ This repository is the **source of truth for skills maintained here**. Upstream 
 | Skill | When to use |
 |-------|-------------|
 | [manage-agent-skills](skills/manage-agent-skills/) | Create, update, release, and sync skills in **this** repo — source of truth for personal Agent Skills; commit/push/publish + `install-all.sh`. |
+| [ios-quality-gate](skills/ios-quality-gate/) | Run `./scripts/check.sh` / Periphery before finishing Melvil, Gregor, or other ai-rules-ios apps. |
+| [bootstrap-ios-repo](skills/bootstrap-ios-repo/) | Install ai-rules-ios (rules + quality plug-in) into a new or existing iOS app. |
 | [ralph-loop](skills/ralph-loop/) | Run and orchestrate Ralph loops — fresh-context agent runs against a Markdown checklist, with guardrails, prompts, and loop scripts. |
 | [ralph-loop-plan](skills/ralph-loop-plan/) | Write implementation plans and checklists sized for Ralph loops — one checkbox per agent run, integration tasks, human gates at the end. |
 | [xcodegen](skills/xcodegen/) | Author and debug XcodeGen `project.yml` specs — merge semantics, settings traps, dependencies, multiplatform targets, schemes, and cache behavior. |
