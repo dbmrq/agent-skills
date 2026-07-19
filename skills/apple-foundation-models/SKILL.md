@@ -14,6 +14,7 @@ Implement Apple Foundation Models with **availability-gated UI, short prompts, t
 
 **Related skills:**
 - **`apple-foundation-models`** (this skill) — decision points, hard-won rules, shipping checklist
+- **`core-spotlight-ask`** — Core Spotlight indexing, `CSUserQuery`, and Ask grounded in Spotlight / search-then-summarize
 - **`native-swiftui`** — availability/quota/error UI, `ContentUnavailableView`, native system presentation
 - **`swiftui-project-structure`** — where feature code, prompt assets, and supporting packages should live
 - **`swiftui-expert-skill`** — Observation, concurrency, performance, Instruments
@@ -66,6 +67,7 @@ Implement Apple Foundation Models with **availability-gated UI, short prompts, t
 - Don’t use tools when your app already knows the data and can put it directly in the prompt.
 - Keep tool descriptions and argument guides short.
 - Treat `.required` tool-calling mode as dangerous unless you define an exit condition.
+- For **Spotlight-grounded Ask** over indexed app content (`SpotlightSearchTool`, progressive hits, search-then-summarize fallback), follow **`core-spotlight-ask`** instead of inventing a parallel stack here.
 
 ### PCC
 

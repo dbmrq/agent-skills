@@ -55,6 +55,8 @@ Reach for tools when the model needs:
 
 Avoid tools when the app already knows the data and can simply put it into the prompt.
 
+For Core Spotlight indexing and Ask flows that retrieve local documents before summarizing (`SpotlightSearchTool`, `CSUserQuery`, vault fallbacks), use the **`core-spotlight-ask`** skill.
+
 ### Tool rules
 
 - Keep tool names, descriptions, and argument guides **short**.
