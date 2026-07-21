@@ -43,26 +43,20 @@ Strip the `_0_<UUID>` suffix, or override with `SCREENSHOT_BASENAME` so compose/
 ## Capture CLI footguns
 
 - Appearance must be exactly `light` or `dark` — a combined arg like `"dark collections"` fails
-- Scene must match the UITest method stem mapping (`collections` → `testCollectionsLight/Dark`)
+- Scene must match the UITest method stem mapping (`collections` → `testCollectionsLight/Dark`, `search-ask` → `testSearchAskLight/Dark`)
 - Prefer shutting idle extra booted simulators when diagnostics collection times out after a “successful” test
+
+## Compose footguns
+
+- Default compose **fails** if a scene omits `composition:` — run `--explore` first, then lock
+- Auto-wrapping headlines creates orphans; always use explicit YAML `|` breaks
+- Upright shadows under tilted devices look broken — rotate shadow+shot as one layer
+- `align: leading` with a full-width region still looks margin-hugging; use `fitWidthRatio` + `blockAlign`
+- Tilted `yRatio` alone overestimates empty space above the device — use the rotated visual top for the text band
+- Dark UI on dark canvas: black list bottoms disappear; stronger shadow beats a hard outline for most shots
 
 ## scenes.yaml shape
 
-```yaml
-scenes:
-  - id: collections-light
-    headline: Collections for every list
-    subhead: Reading, packing, tasks — your way
-    template: light
-    displayType: APP_IPHONE_67
-    raw: raw/iphone/collections-light.png
-  - id: collection-lists-dark
-    headline: …
-    subhead: …
-    template: dark
-    displayType: APP_IPHONE_67
-    raw: raw/iphone/collection-lists-dark.png
-    upload: false   # composed locally; skipped by upload_store_assets.py
-```
+See [compositions.md](compositions.md) for the current schema (`composition:`, multiline `headline`, no `subhead`).
 
 `compose_store_assets.py` writes `store-assets/composed/manifest.json` consumed by `upload_store_assets.py`.
