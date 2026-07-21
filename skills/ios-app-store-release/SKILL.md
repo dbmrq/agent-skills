@@ -147,6 +147,10 @@ Store screenshots need content; **App Store builds must not**.
 
 **`ci_post_clone.sh`:** install/run `xcodegen generate` when `.xcodeproj` is generated from spec.
 
+**Private path dependencies** (e.g. sibling `../LeioMarkdown`): Xcode Cloud cannot `git clone` private HTTPS repos until access is granted. Failures look like `ci_post_clone.sh` exit **128**, then package resolve “path does not exist”.
+
+**Manual fix (once):** App Store Connect → app → **Xcode Cloud → Settings → Repositories** (or the failed build’s **Grant Access** prompt) → grant the private dependency repo → re-run the workflow. Until then, use local archive upload.
+
 **Workflow project path** must exactly match repo root project name (`Gregor.xcodeproj`). Renaming the project requires updating the workflow in **Xcode → Product → Xcode Cloud → Manage Workflows** — ASC stores `containerFilePath`; a stale name fails before CI scripts run. Do not commit symlinks for old names.
 
 Confirm:
@@ -156,6 +160,27 @@ Confirm:
 - `Gregor.xcodeproj/xcshareddata/xcodecloud/manifest.json` ids match after workflow creation (Xcode writes these)
 
 Monitor: `scripts/check_xcode_cloud.py --product "{AppName}" --wait 1200`
+
+## ASC metadata merge (do not blind-overwrite)
+
+`asc-sync` must **merge** repo YAML / review notes with live ASC values — never PATCH a field just because local is non-empty.
+
+**Policy (most complete wins):**
+
+| Situation | Action |
+|-----------|--------|
+| Only one side has text | Keep that side; write the other side up if needed |
+| Both non-empty, different lengths | Keep the **longer** value |
+| Same length, different text | Keep **ASC** (hand edits) and write back to repo |
+| Keywords | **Union** unique tokens (ASC order first), max 100 chars; push/write if the union differs |
+
+Applies to: description, keywords, support/marketing URLs, what’s new, promotional text, subtitle, privacy URL, copyright, review notes, review contact fields.
+
+After merge, **write the winner back** into `store-assets/metadata/*.yaml` and `review-notes.txt` when ASC (or the union) was richer, so the next ship does not regress.
+
+Empty local `description: ""` means “no local draft” — pull ASC into the repo rather than clearing ASC.
+
+Log each field decision (`field: ASC more complete; writing back`, etc.) during sync.
 
 ## ASC sync checklist (API-verifiable)
 

@@ -64,6 +64,17 @@ Copy from an existing app in the same team if starting fresh.
 | contentRightsDeclaration | `apps` (`DOES_NOT_USE_THIRD_PARTY_CONTENT` or `USES_THIRD_PARTY_CONTENT`) |
 | usesNonExemptEncryption | `builds` (PATCH) |
 
+### Merge, do not overwrite
+
+Before PATCH, GET the live ASC attributes and merge with local YAML / `review-notes.txt`:
+
+- Prefer non-empty over empty; prefer longer text when both exist.
+- On equal length with different text, keep ASC and write back to the repo.
+- Keywords: union unique comma-separated tokens (ASC first), cap at 100 characters.
+- Write winners back to `store-assets/metadata/` so hand edits survive the next ship.
+
+Never treat “local non-empty” as license to clobber a richer ASC value (reviewer notes, keywords, description, contact).
+
 ### Submit for review via API
 
 `POST /appStoreVersionSubmissions` may return **403** (`CREATE` not allowed for API key role). Treat API submit as optional; human Submit in ASC is reliable.
@@ -137,7 +148,9 @@ reviewContact:
   email: support@example.com
 description: |
   ...
-# whats_new optional here; manifest.whats_new takes precedence for sync
+# Empty description pulls the live ASC listing into the repo on sync (merge policy).
+# Prefer keeping the fuller of ASC vs local — never wipe hand-edited ASC copy.
+# whats_new optional here; manifest.whats_new takes precedence as the local candidate
 ```
 
 ## review-notes.txt template
