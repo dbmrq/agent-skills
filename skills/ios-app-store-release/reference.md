@@ -64,16 +64,22 @@ Copy from an existing app in the same team if starting fresh.
 | contentRightsDeclaration | `apps` (`DOES_NOT_USE_THIRD_PARTY_CONTENT` or `USES_THIRD_PARTY_CONTENT`) |
 | usesNonExemptEncryption | `builds` (PATCH) |
 
-### Merge, do not overwrite
+### Merge, do not overwrite (mandatory)
 
-Before PATCH, GET the live ASC attributes and merge with local YAML / `review-notes.txt`:
+Before **any** PATCH of listing or review fields, GET the live ASC attributes and merge with local YAML / `review-notes.txt`. ASC is often richer than the repo (hand-edited reviewer notes, keywords, description).
 
 - Prefer non-empty over empty; prefer longer text when both exist.
 - On equal length with different text, keep ASC and write back to the repo.
 - Keywords: union unique comma-separated tokens (ASC first), cap at 100 characters.
 - Write winners back to `store-assets/metadata/` so hand edits survive the next ship.
 
-Never treat “local non-empty” as license to clobber a richer ASC value (reviewer notes, keywords, description, contact).
+Never treat “local non-empty” as license to clobber a richer ASC value (reviewer notes, keywords, description, contact). A short local `review-notes.txt` must not replace multi-section ASC notes.
+
+### Do not cancel App Review to unblock shipping
+
+`DELETE /appStoreVersionSubmissions` (Cancel Review) **restarts the review clock**. Never do this to create `1.x+1`, rename a version, or attach a newer build unless the human explicitly ordered cancel/withdraw in the current conversation.
+
+If `POST /appStoreVersions` returns **409** (“You cannot create a new version… in the current state”), an earlier version is still unreleased / in queue — stop and ask; do not withdraw.
 
 ### Submit for review via API
 

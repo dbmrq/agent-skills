@@ -14,6 +14,16 @@ Agent playbook for **repeatable, mostly-automated** iOS releases. Assumes Swift/
 
 **Out of scope (agent already knows):** creating Apple Developer accounts, basic `xcodebuild`, writing App Store copy from scratch, generic git tagging.
 
+## Hard rules (never violate)
+
+These are **stop-and-ask** constraints. Convenience (unblocking `asc-sync`, bumping a marketing version, “fixing” a stuck ship) does **not** override them.
+
+1. **Never blind-overwrite ASC listing or review data.** Live App Store Connect is the source of truth when it differs from the repo or from what an agent “remembers.” Always **GET** before PATCH; **merge** per [ASC metadata merge](#asc-metadata-merge-do-not-blind-overwrite); prefer ASC (or the richer side) for review notes, description, keywords, contact, etc. Local `review-notes.txt` / YAML being non-empty is **not** permission to replace a longer ASC value. After merge, **write winners back** into `store-assets/` so the next ship does not regress.
+
+2. **Never remove a version from App Review** (no `DELETE /appStoreVersionSubmissions`, no “Cancel Review” / withdraw, no developer-reject-to-edit) unless the human **explicitly** asks in this conversation. Canceling **restarts the review clock** and can add days of wait. If ASC blocks creating `1.1` because `1.0` is `WAITING_FOR_REVIEW` / `IN_REVIEW` / `PENDING_APPLE_RELEASE`, **stop and ask** — do not cancel, rename, or replace the in-flight version to unblock automation.
+
+3. **Do not invent a workaround that mutates an in-review version** (rename `1.0`→`1.1`, swap the attached build, rewrite notes) without explicit human approval. Prefer waiting for approval/release, or shipping the new binary only after the human decides how to handle the queue.
+
 ## Before starting
 
 Collect per-app constants (store in `scripts/asc/constants.py` or equivalent):
@@ -165,7 +175,9 @@ Monitor: `scripts/check_xcode_cloud.py --product "{AppName}" --wait 1200`
 
 ## ASC metadata merge (do not blind-overwrite)
 
-`asc-sync` must **merge** repo YAML / review notes with live ASC values — never PATCH a field just because local is non-empty.
+**ASC may have been edited by hand (or by a prior ship) after the repo was last updated.** Treat every `asc-sync` as a merge against live data, not a push of local files.
+
+`asc-sync` must **merge** repo YAML / review notes with live ASC values — never PATCH a field just because local is non-empty. Especially dangerous: shorter local `review-notes.txt` clobbering long reviewer instructions that only lived in ASC.
 
 **Policy (most complete wins):**
 
@@ -176,13 +188,27 @@ Monitor: `scripts/check_xcode_cloud.py --product "{AppName}" --wait 1200`
 | Same length, different text | Keep **ASC** (hand edits) and write back to repo |
 | Keywords | **Union** unique tokens (ASC order first), max 100 chars; push/write if the union differs |
 
-Applies to: description, keywords, support/marketing URLs, what’s new, promotional text, subtitle, privacy URL, copyright, review notes, review contact fields.
+Applies to: description, keywords, support/marketing URLs, what’s new, promotional text, subtitle, privacy URL, copyright, **review notes**, review contact fields.
 
 After merge, **write the winner back** into `store-assets/metadata/*.yaml` and `review-notes.txt` when ASC (or the union) was richer, so the next ship does not regress.
 
 Empty local `description: ""` means “no local draft” — pull ASC into the repo rather than clearing ASC.
 
 Log each field decision (`field: ASC more complete; writing back`, etc.) during sync.
+
+If merge logic is missing in app scripts (e.g. review detail always PATCHes local notes), **fix the script** or GET+compare by hand before writing — do not run a clobbering sync “just this once.”
+
+## Versions already in review
+
+Before creating a new App Store version, attaching a build, or renaming `versionString`, check `appStoreState` / `appVersionState`.
+
+| State | Agent action |
+|-------|----------------|
+| `WAITING_FOR_REVIEW`, `IN_REVIEW`, `PENDING_APPLE_RELEASE`, `PROCESSING_FOR_APP_STORE` | **Do not cancel.** Report the blocker; ask the human. |
+| `PREPARE_FOR_SUBMISSION`, `DEVELOPER_REJECTED`, `REJECTED`, `METADATA_REJECTED` | Editable — sync/metadata/build attach OK with merge rules |
+| `READY_FOR_SALE` | Safe to create the **next** marketing version |
+
+“Cannot create a new version of the App in the current state” almost always means an unreleased version is still in the queue — **not** a cue to DELETE the submission.
 
 ## ASC sync checklist (API-verifiable)
 
@@ -208,6 +234,8 @@ After `asc-sync`, confirm:
 - App Privacy questionnaire
 - Pressing **Submit for Review** (recommended even when API submit exists)
 - App Review rejection iteration
+- **Cancel Review / withdraw** — human-only; agents must not cancel to unblock a newer version (see [Hard rules](#hard-rules-never-violate))
+- Choosing to replace an in-flight unreleased version’s build or marketing string
 
 ## Porting to a new app
 
