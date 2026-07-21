@@ -161,7 +161,7 @@ Store screenshots need content; **App Store builds must not**.
 
 **Manual fix (once):** App Store Connect → app → **Xcode Cloud → Settings → Repositories** (or the failed build’s **Grant Access** prompt) → grant the private dependency repo → re-run the workflow. Until then, use local archive upload.
 
-**Do not brew-install SwiftLint or Periphery in Xcode Cloud CI scripts.** Cloud often gets an x86_64 SwiftLint bottle under Rosetta (`/usr/local`), which crashes loading `sourcekitdInProc` (SIGILL / exit 132). The Periphery Homebrew cask needs `sudo`, which Cloud does not allow — a failing `ci_post_xcodebuild.sh` fails the Archive even when compilation succeeded. Run format/lint/deadcode locally before tagging; keep Cloud scripts limited to checkout/project guards (or no-ops).
+**Do not brew-install SwiftLint or Periphery in Xcode Cloud CI scripts.** Cloud often gets an x86_64 SwiftLint bottle under Rosetta (`/usr/local`), which crashes loading `sourcekitdInProc` (SIGILL / exit 132). The Periphery Homebrew cask needs `sudo`, which Cloud does not allow — a failing `ci_post_xcodebuild.sh` fails the Archive even when compilation succeeded. If the app target has a Quality Check `preBuildScript`, skip it when `CI_XCODE_CLOUD` / `CI_PRIMARY_REPOSITORY_PATH` is set (same reason). Run format/lint/deadcode locally before tagging; keep Cloud scripts limited to checkout/project guards (or no-ops).
 
 **Workflow project path** must exactly match repo root project name (`Gregor.xcodeproj`). Renaming the project requires updating the workflow in **Xcode → Product → Xcode Cloud → Manage Workflows** — ASC stores `containerFilePath`; a stale name fails before CI scripts run. Do not commit symlinks for old names.
 
