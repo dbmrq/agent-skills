@@ -79,7 +79,7 @@ Never treat “local non-empty” as license to clobber a richer ASC value (revi
 
 `DELETE /appStoreVersionSubmissions` (Cancel Review) **restarts the review clock**. Never do this to create `1.x+1`, rename a version, or attach a newer build unless the human explicitly ordered cancel/withdraw in the current conversation.
 
-If `POST /appStoreVersions` returns **409** (“You cannot create a new version… in the current state”), an earlier version is still unreleased / in queue — stop and ask; do not withdraw.
+If `POST /appStoreVersions` returns **409** (“You cannot create a new version… in the current state”), an earlier version is still unreleased / in queue — re-run **version selection** (SKILL.md): reuse an editable `PREPARE_FOR_SUBMISSION` version when present; if the blocker is already in review, upload the binary only and warn — do not withdraw.
 
 ### Submit for review via API
 

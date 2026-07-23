@@ -20,9 +20,9 @@ These are **stop-and-ask** constraints. Convenience (unblocking `asc-sync`, bump
 
 1. **Never blind-overwrite ASC listing or review data.** Live App Store Connect is the source of truth when it differs from the repo or from what an agent “remembers.” Always **GET** before PATCH; **merge** per [ASC metadata merge](#asc-metadata-merge-do-not-blind-overwrite); prefer ASC (or the richer side) for review notes, description, keywords, contact, etc. Local `review-notes.txt` / YAML being non-empty is **not** permission to replace a longer ASC value. After merge, **write winners back** into `store-assets/` so the next ship does not regress.
 
-2. **Never remove a version from App Review** (no `DELETE /appStoreVersionSubmissions`, no “Cancel Review” / withdraw, no developer-reject-to-edit) unless the human **explicitly** asks in this conversation. Canceling **restarts the review clock** and can add days of wait. If ASC blocks creating `1.1` because `1.0` is `WAITING_FOR_REVIEW` / `IN_REVIEW` / `PENDING_APPLE_RELEASE`, **stop and ask** — do not cancel, rename, or replace the in-flight version to unblock automation.
+2. **Never remove a version from App Review** (no `DELETE /appStoreVersionSubmissions`, no “Cancel Review” / withdraw, no developer-reject-to-edit) unless the human **explicitly** asks in this conversation. Canceling **restarts the review clock** and can add days of wait. If a version is already `WAITING_FOR_REVIEW` / `IN_REVIEW` / `PENDING_APPLE_RELEASE`, follow [Version selection](#version-selection-before-every-ship) — upload the binary only and **warn**; do not cancel, rename, or re-attach builds on that version.
 
-3. **Do not invent a workaround that mutates an in-review version** (rename `1.0`→`1.1`, swap the attached build, rewrite notes) without explicit human approval. Prefer waiting for approval/release, or shipping the new binary only after the human decides how to handle the queue.
+3. **Do not invent a workaround that mutates an in-review version** (rename `1.0`→`1.1`, swap the attached build, rewrite notes) without explicit human approval. Prefer waiting for approval/release, or uploading a new TestFlight/App Store build while leaving the review queue alone.
 
 ## Before starting
 
@@ -79,7 +79,8 @@ Reference templates and API traps: [reference.md](reference.md).
 Copy and track:
 
 ```
-- [ ] ASC app record exists; version created (PREPARE_FOR_SUBMISSION)
+- [ ] Version selection (query ASC versions; reuse editable or create next; never cancel in-review)
+- [ ] ASC app record exists; target version ready (PREPARE_FOR_SUBMISSION)
 - [ ] Legal pages live (privacy + support URLs reachable)
 - [ ] Xcode Cloud Release workflow: correct *.xcodeproj path, tag trigger
 - [ ] Demo/screenshot data isolated from Release builds (#if DEBUG)
@@ -198,17 +199,25 @@ Log each field decision (`field: ASC more complete; writing back`, etc.) during 
 
 If merge logic is missing in app scripts (e.g. review detail always PATCHes local notes), **fix the script** or GET+compare by hand before writing — do not run a clobbering sync “just this once.”
 
-## Versions already in review
+## Version selection (before every ship)
 
-Before creating a new App Store version, attaching a build, or renaming `versionString`, check `appStoreState` / `appVersionState`.
+**Always query ASC first** before bumping the marketing version, creating an `appStoreVersions` row, or attaching a build:
 
-| State | Agent action |
-|-------|----------------|
-| `WAITING_FOR_REVIEW`, `IN_REVIEW`, `PENDING_APPLE_RELEASE`, `PROCESSING_FOR_APP_STORE` | **Do not cancel.** Report the blocker; ask the human. |
-| `PREPARE_FOR_SUBMISSION`, `DEVELOPER_REJECTED`, `REJECTED`, `METADATA_REJECTED` | Editable — sync/metadata/build attach OK with merge rules |
-| `READY_FOR_SALE` | Safe to create the **next** marketing version |
+```http
+GET /v1/apps/{APP_ID}/appStoreVersions?limit=20&include=build
+```
 
-“Cannot create a new version of the App in the current state” almost always means an unreleased version is still in the queue — **not** a cue to DELETE the submission.
+Use `appStoreState` / `appVersionState`. Then pick **one** path:
+
+| ASC situation | Agent action |
+|---------------|----------------|
+| **All versions released** (`READY_FOR_SALE` / `REPLACED_WITH_NEW_VERSION` only; no editable or in-queue version) | Create the **next** marketing version; attach the new build; run full `asc-sync` + readiness so the human only clicks **Submit**. |
+| **Editable version exists** (`PREPARE_FOR_SUBMISSION`, `DEVELOPER_REJECTED`, `REJECTED`, `METADATA_REJECTED`) that has **not** been submitted | **Reuse that version** — do not create another. Attach/replace the new build, merge metadata, finish readiness for Submit. Prefer the highest marketing version in an editable state. |
+| **Version already in review / waiting** (`WAITING_FOR_REVIEW`, `IN_REVIEW`, `PENDING_APPLE_RELEASE`, `PROCESSING_FOR_APP_STORE`) | **Do not cancel or mutate that version** (no build swap, no rename, no notes rewrite). Still **upload** the new binary (Xcode Cloud tag / local archive → ASC). Warn the human that review is in flight and the new build sits in TestFlight / Builds until the current review finishes or they explicitly decide otherwise. |
+
+**Goal:** get as far as ASC allows so the human only needs to click **Submit for Review**. Default `submit_for_review: false` in manifests; do not auto-submit unless the human asked.
+
+“Cannot create a new version of the App in the current state” almost always means an unreleased version is still in the queue — **not** a cue to DELETE the submission. Re-run version selection instead.
 
 ## ASC sync checklist (API-verifiable)
 
