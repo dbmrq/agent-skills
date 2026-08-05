@@ -11,6 +11,7 @@ This repository is the **source of truth for skills maintained here**. Upstream 
 | Skill | When to use |
 |-------|-------------|
 | [manage-agent-skills](skills/manage-agent-skills/) | Create, update, release, and sync skills in **this** repo — source of truth for personal Agent Skills; commit/push/publish + `install-all.sh`. |
+| [skill-self-improvement](skills/skill-self-improvement/) | Runs after every skill use — patch the skill just used with durable new info learned (fixed commands/paths, gotchas, missing steps), while keeping it concise. |
 | [ios-bootstrap](skills/ios-bootstrap/) | Scaffold a new iOS app: XcodeGen, ai-rules-ios, SwiftLint/SwiftFormat/Periphery, warnings-as-errors. |
 | [ios-quality-gate](skills/ios-quality-gate/) | Run `./scripts/check.sh` / Periphery `--strict` before finishing Melvil, Gregor, or other ai-rules-ios apps. |
 | [bootstrap-ios-repo](skills/bootstrap-ios-repo/) | Deprecated alias → **ios-bootstrap** (kept for older prompts). |
