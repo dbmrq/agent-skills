@@ -90,7 +90,10 @@ The response echoes the resulting state.
   has no load). Never trust `on`/`onAut` as proof of heating — verify with the tank temperature
   (0.1 °C) or the controller LCD indicator.
 - Modes can change themselves: LIGADO can revert to AUTOMÁTICO by itself once SPAP is reached
-  (observed within seconds of being set when the tank was already at the setpoint).
+  (observed within seconds of being set when the tank was already at the setpoint). To start
+  LIG over the socket: write the higher SPAP **first**, then `opMode 1`.
+- Every support activation path observed so far (manual `outputs.*.on` write, LIG) engaged
+  **both** outputs together — don't rely on per-support granularity for these.
 - With no active agenda event, AUTOMÁTICO does nothing visible; the agenda itself is not
   exposed over the socket.
 - `heating.on` toggles with the pump's differential cycling — do not read it as a mode setting.

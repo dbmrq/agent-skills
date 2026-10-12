@@ -66,6 +66,9 @@ the element's own thermostat. Watch the **tank temperature** (0.1 °C resolution
 +0.2 °C/min on 200 L) or the LCD support indicator.
 If nothing heats: breaker → LCD indicator vs socket state → which relay the installers used →
 element/thermostat. Manual writes to the socket outputs are accepted regardless.
+Judge over a **long window** (a support activation runs at most 2 h): on a large tank even a
+working support can be slow, and an idle tank declines only ~0.5 °C/h (400–600 L) — a flat
+curve during an activation may mean partial heating, not none.
 
 ## Common parameters (level-2 programming, code 162; factory-reset code 218)
 
@@ -112,6 +115,9 @@ element/thermostat. Manual writes to the socket outputs are accepted regardless.
 - To guarantee zero backup usage, ECO is the only true state (manual activation is blocked too).
 - LIG is a one-shot: it can flip back to AUTO on its own once SPAP is reached — don't assume
   the mode you set sticks; re-check before concluding anything.
+- Starting LIG remotely (socket/app/HA): raise SPAP **above** the tank temperature *first*, then
+  switch to LIG — if the setpoint is already met the activation completes instantly and the mode
+  reverts to AUTO, looking like the mode "didn't take".
 - Everything on the socket is tenths of °C; `mode` is the heating *type* (3 = solar residencial),
   not the operation mode.
 - The dongle needs internet for local control; losing WAN does not stop the controller itself.
