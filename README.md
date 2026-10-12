@@ -28,6 +28,7 @@ This repository is the **source of truth for skills maintained here**. Upstream 
 | [native-swiftui](skills/native-swiftui/) | Build native-looking iOS UIs with highest-level SwiftUI components, system styles, semantic colors, and standard navigation (`NavigationStack`, `GroupBox`, built-in button styles). |
 | [swiftui-view-composition](skills/swiftui-view-composition/) | Structure and refactor SwiftUI views — extract dedicated `View` structs, `ViewModifier`s, and layout helpers for readable, reusable screens instead of bloated `body` properties. |
 | [swiftui-project-structure](skills/swiftui-project-structure/) | Organize SwiftUI repos like Apple samples — feature folders, Swift packages, multiplatform targets, App/Scene wiring, and MV vs Store/ViewModel layer decisions. |
+| [tholz-solar-heater](skills/tholz-solar-heater/) | Operate/automate Tholz SmartHeat solar water heaters — local socket, modes (ECO/AUT/LIG/DES), SPAP/supports/weekly agenda semantics, and why "auto mode" can appear to do nothing. |
 
 Browse skills in this repo:
 
