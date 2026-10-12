@@ -97,3 +97,7 @@ The response echoes the resulting state.
 - With no active agenda event, AUTOMÁTICO does nothing visible; the agenda itself is not
   exposed over the socket.
 - `heating.on` toggles with the pump's differential cycling — do not read it as a mode setting.
+- The dongle's **local TCP server can hang** while the dongle stays cloud-connected (the phone
+  app keeps working and the host still answers pings). Kicking its Wi-Fi association (from the
+  AP/controller) or power-cycling restores local control; Home Assistant goes `unavailable`
+  meanwhile.
