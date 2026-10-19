@@ -151,7 +151,7 @@ Store screenshots need content; **App Store builds must not**.
 
 - Gate all demo vault seeding behind `#if DEBUG` and launch args (e.g. `-UITestDemo`).
 - Production: empty journal only (`JournalBootstrap.ensureDefaultJournal` — directories, no notes).
-- **Review notes** must describe real first-launch behavior (empty journal), not screenshot fixtures.
+- **Review notes** must describe real first-launch behavior (empty journal), not screenshot fixtures. First submissions follow the common-questions template in [reference.md](reference.md); the physical-device screen recording attachment is human-only in the ASC UI.
 - Never symlink or ship bundled sample markdown in the app target.
 
 ## Xcode Cloud
@@ -232,16 +232,18 @@ After `asc-sync`, confirm:
 | Privacy policy URL | **appInfoLocalizations** (not version localization) |
 | Copyright | `appStoreVersions` |
 | Content rights | `apps.contentRightsDeclaration` |
-| Age rating | `appInfos/.../ageRatingDeclaration` |
-| Review contact | `appStoreReviewDetail` — first/last name, phone in E.164, email |
+| Age rating | PATCH `/ageRatingDeclarations/{id}` (mirror a shipped sibling app) |
+| Review contact | `appStoreReviewDetail` — first/last name, phone in E.164, email, `demoAccountRequired` (defaults to **true** on create; PATCH false for no-account apps) |
+| Availability | `GET /apps/{id}/appAvailabilityV2` — 404 means unset; creation is UI-only (see reference) |
 
-**Human-only in ASC UI:** App Privacy nutrition labels (no stable public API), paid agreements, tax/banking.
+**Human-only in ASC UI:** App Privacy nutrition labels (no stable public API), app availability for non-preorder apps, paid agreements, tax/banking.
 
 ## Human gates (do not block automation on these)
 
 - First GitHub ↔ Xcode Cloud connect
 - App Privacy questionnaire
 - Pressing **Submit for Review** (recommended even when API submit exists)
+- Submitting creative assets (header/search) for review — or letting them ride with the app version
 - App Review rejection iteration
 - **Cancel Review / withdraw** — human-only; agents must not cancel to unblock a newer version (see [Hard rules](#hard-rules-never-violate))
 - Choosing to replace an in-flight unreleased version’s build or marketing string
@@ -259,6 +261,7 @@ After `asc-sync`, confirm:
 ## Related skills
 
 - [ios-app-store-screenshots](../ios-app-store-screenshots/SKILL.md) — capture, compose, and upload store screenshots only
+- [ios-app-store-creative-assets](../ios-app-store-creative-assets/SKILL.md) — product page header + search results images/videos and Asset Library placement
 - [xcodegen](../xcodegen/SKILL.md) — deep XcodeGen traps for existing specs
 - [ios-bootstrap](../ios-bootstrap/SKILL.md) — new app + quality gate scaffolding
 - [device-interaction](https://github.com/superagents-lab/xcode27-skills) — simulator verification (Apple toolchain export)

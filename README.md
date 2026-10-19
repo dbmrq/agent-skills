@@ -20,6 +20,7 @@ This repository is the **source of truth for skills maintained here**. Upstream 
 | [xcodegen](skills/xcodegen/) | Deep XcodeGen `project.yml` reference — merge semantics, settings traps, dependencies (new apps: prefer **ios-bootstrap**). |
 | [ios-app-store-release](skills/ios-app-store-release/) | Ship iOS apps to App Store Connect — Xcode Cloud, ASC API metadata and screenshots, release manifests, TestFlight, and prepare-for-submission workflows. |
 | [ios-app-store-screenshots](skills/ios-app-store-screenshots/) | Capture, compose, and upload App Store screenshots — UI tests, xcresult export, marketing frames, ASC screenshot sets (without a full release ship). |
+| [ios-app-store-creative-assets](skills/ios-app-store-creative-assets/) | Product page header and search-results creative assets — minimal deterministic renders, seamless looping videos, AI backdrop option, Asset Library upload and placement. |
 | [xcode-cloud-ci](skills/xcode-cloud-ci/) | Check Xcode Cloud build status via App Store Connect API after `git push` in iOS/macOS projects — monitors builds, reports results, and helps debug failures. |
 | [ci-watcher](skills/ci-watcher/) | Check GitHub Actions CI status after `git push` in projects with `.github/workflows` — polls runs, reports results, and helps debug failures (Xcode Cloud → xcode-cloud-ci). |
 | [app-store-connect-analytics](skills/app-store-connect-analytics/) | Query App Store Connect analytics — downloads, purchases/revenue, customer reviews, and session metrics. |

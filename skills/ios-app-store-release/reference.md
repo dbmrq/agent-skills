@@ -32,6 +32,10 @@ GET /v1/builds?filter[app]={APP_ID}&include=preReleaseVersion&sort=-uploadedDate
 | `data[].attributes.version` | Build number (`3`) |
 | `included[type=preReleaseVersions].attributes.version` | Marketing version (`1.0`) |
 
+### Build numbers must clear Xcode Cloud auto-numbering
+
+Xcode Cloud auto-numbers TestFlight builds (project `CURRENT_PROJECT_VERSION` may stay at `1` while ASC builds read `17`). A local `xcodegen` bump from the project value can therefore upload a build number **lower** than existing builds (ASC accepted the duplicate and validated it anyway in practice, but the wrong build can then be attached). Before a local archive, set the build number to `max(local, highest ASC build + 1)` — or a clearly higher value — and pass that same floor as `min_build_number` when selecting the build to attach. Race note: a branch push also triggers the Cloud Beta workflow; attaching the newest matching build can pick up the Cloud build instead — a min build-number filter fixes that.
+
 ### Screenshot display types
 
 Invalid enums fail at upload time. Common valid values (verify in ASC for your SDK era):
@@ -40,8 +44,58 @@ Invalid enums fail at upload time. Common valid values (verify in ASC for your S
 |--------|--------------|---------------|
 | iPhone 6.7" | `APP_IPHONE_67` | 1290 × 2796 |
 | iPad Pro 12.9" (3rd gen) | `APP_IPAD_PRO_3GEN_129` | 2064 × 2752 |
+| iPhone Duo (iOS 27.1 era) | `APP_IPHONE_DUO` | outer 1398 × 2034, inner 2007 × 2853 |
 
 `APP_IPHONE_69` was rejected in practice — do not assume newer names work without checking.
+
+### iPhone Duo screenshots (iOS 27.1 SDK era)
+
+- ASC accepts `APP_IPHONE_DUO` via the API (verified) even while the public docs' enum list
+  lags behind. One set takes both outer and inner sizes; 1–10 images, no alpha.
+  Accepted sizes are exact: inner 2007 × 2853 / 2853 × 2007, outer 1398 × 2034 / 2034 × 1398 —
+  compose frames onto the exact canvas (raw captures can come out 2006 × 2852 / 2852 × 2006).
+- Required for apps submitted from April 2027 when built with the iOS 27.1 SDK (Apple has
+  also said "any app submitted" — plan for the stricter reading).
+- Prerequisites: Xcode 27.1 components installed (admin GUI first launch; an older
+  CoreSimulator makes `simctl` hang), the iOS 27.1 simulator runtime
+  (`xcodebuild -downloadPlatform iOS -buildVersion 27.1`, ~8 GB), and RocketSim for poses.
+  The Duo device type is **incompatible with older runtimes** (`simctl create` fails with
+  "Incompatible device"). Simulator.app is gone in Xcode 27; Device Hub replaces it.
+- Capture notes that cost real time:
+  - The inner display is **landscape-native**; portrait-only apps still render landscape
+    there (27.1 SDK moves toolbar buttons into a vertical bar). Capture landscape.
+  - `XCUIScreen` exports the inner drawable as a portrait-shaped PNG **rotated 90° CW** —
+    normalize with `sips -r 90` (or capture the display directly from the host:
+    `simctl io <udid> enumerate` lists screen IDs; `simctl io <udid> screenshot --display <id>`
+    grabs a specific one). `XCUIScreen.screens` can list multiple displays — pick the largest.
+  - `rocketsim duo pose open|book|closed --udid <udid>` applies even when
+    `rocketsim duo hinge` keeps reporting `hinge_not_ready` (headless); treat the hinge read
+    as advisory. RocketSim.app must be running for its CLI IPC.
+- Live apps (`READY_FOR_SALE`) can only get new screenshots via a metadata-only update
+  (review, no new build) or their next version; an older-SDK build won't be Duo-optimized.
+
+### Creative assets (header + search results)
+
+Product page header and search-results artwork are **not** screenshots — see
+[ios-app-store-creative-assets](../ios-app-store-creative-assets/SKILL.md) for the
+Asset Library API flow, generation pipeline, and design/motion recipe.
+
+### App availability (non-preorder) is UI-only
+
+`POST /v2/appAvailabilities` is documented as "Create an app pre-order" and rejects normal
+availability payloads. For a normal all-territories availability use the ASC UI: Pricing
+and Availability → Set Up Availability → all countries → Save. Check with
+`GET /apps/{id}/appAvailabilityV2` (404 = not set).
+
+### Age rating via API
+
+```http
+GET  /v1/appInfos/{infoId}/ageRatingDeclaration
+PATCH /v1/ageRatingDeclarations/{declarationId}
+```
+
+Mirror a shipped sibling app's attribute values (booleans + enums like `"NONE"`); only
+PATCH fields that differ. Works for the first submission.
 
 ### Review detail required fields
 
@@ -51,6 +105,7 @@ POST/PATCH `appStoreReviewDetails` requires:
 - `contactPhone` — E.164 (`+5511976600011`)
 - `contactEmail`
 - `notes`
+- `demoAccountRequired` — defaults to **true** on create; PATCH `false` for no-account apps
 
 Copy from an existing app in the same team if starting fresh.
 
@@ -159,19 +214,45 @@ description: |
 # whats_new optional here; manifest.whats_new takes precedence as the local candidate
 ```
 
-## review-notes.txt template
+## review-notes.txt template (first submissions)
 
-Describe **production** behavior only:
+Reviewers consistently request the same info for new apps. Lead with a one-line testing
+walkthrough, then answer the standing questions — the same list is reused across sibling
+apps with app-specific answers (Gregor/Melvil/Sandow all shipped this way):
 
 ```
-{App} is a … app. Notes are stored as …
+This is a simple app and testing it is straightforward: <shortest path through the main flow>. Thank you for reviewing my app!
 
-No login is required. On first launch the app starts with an empty journal.
+Additional info requested for my other app, but could be relevant here:
 
-Optional features: …
+1. A screen recording captured on a physical device:
+Screen recording is attached!        # attach in ASC Review Notes UI; drop the line if not attaching
 
-Contact: support@example.com
+2. A list of the device models and operating systems the app was tested on:
+iPhone <model> running iOS <version>
+iPhone <model> running iOS <beta>
+
+3. A description of the app's purpose and target audience:
+The purpose of the app is to help users <core job> while owning their data in the form of reliable markdown files. The problems it solves are: <status quo problems — proprietary formats, accounts/subscriptions, data loss risk>. {App} addresses this and adds value by:
+- Providing a polished native UI for <core job> (instead of writing markdown files directly);
+- Storing data as plain markdown files that will continue to be reliable regardless of the longevity of the app;
+- <any other differentiator: on-device AI, backups, dark mode…>.
+The app targets <audience>.
+
+4. Instructions for setting up and accessing the app's main features:
+All that is necessary to use the app is to open it, <main flow steps>. <Where the markdown files live — app's iCloud folder if enabled, or the device via the Files app.> No log-in or credentials are needed.
+
+5. A list of the external services, tools, or platforms the app uses to deliver its core functionality:
+None! Everything is done locally using native iOS APIs. <Mention on-device Foundation Models conversions as local, if present.>
+
+6. Describe any regional differences in the app's features or content, or confirm that the app functions consistently across all regions:
+There are no regional differences. The app works exactly the same in all regions.
+
+7. If the app operates in a highly regulated industry or includes protected third-party material:
+It doesn't!
 ```
+
+Describe **production** behavior only (empty first launch), never screenshot fixtures.
 
 ## Legal pages pattern (private app repo)
 

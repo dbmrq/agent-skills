@@ -1,0 +1,115 @@
+---
+name: ios-app-store-creative-assets
+description: >-
+  Generate and publish App Store creative assets — product page header and search
+  results images plus seamless looping videos — with deterministic minimal
+  renders, an optional AI backdrop, and App Store Connect Asset Library upload
+  and placement through the API. Use when asked for store header/search artwork,
+  animated App Store assets, the Asset Library, creative assets for a new app,
+  or porting this pipeline to a sibling app.
+---
+
+# iOS App Store Creative Assets
+
+Header + search-results artwork for the product page (iOS 27+). **Not** screenshots
+or app previews — those stay in [ios-app-store-screenshots](../ios-app-store-screenshots/SKILL.md).
+
+Reference implementation: Sandow `scripts/creative_assets.py`,
+`scripts/upload_creative_assets.py`, `store-assets/creative/<app>.yaml`.
+
+## Specs (ASC, iOS 27 era)
+
+| Placement | Image | Video |
+|-----------|-------|-------|
+| Product page header | 3840 × 1646 (21:9, PNG) or universal 5244 × 2950 (16:9, PNG) | 3840 × 1646, 5–30 s, 30/60 fps, H.264 `.mp4/.mov/.m4v`, muted, loops |
+| Search results | 3:2, 1920–3840 × 1280–2560 (PNG/JPG) or universal | 5–30 s, 30/60 fps, muted (cannot unmute), loops |
+
+No alpha. One placement per placement type (`maxCount` 1) — place the video
+(animated) or the image, not both. Assets are reviewed separately from the app
+(they can ride with the version or be submitted from the Asset Library).
+
+## Repo pieces
+
+```
+store-assets/creative/<app>.yaml     # brand, copy, sizes, motion, UI shot, motif
+store-assets/creative/art/<mark>.png # rasterized app-icon mark for the motif
+store-assets/creative/out/           # header/search .png + .mp4 + previews
+scripts/creative_assets.py           # renderer (stills, videos, previews, styles)
+scripts/generate_creative_art.py     # optional AI backdrop (headless image model)
+scripts/upload_creative_assets.py    # Asset Library upload + placement
+```
+
+## Workflow
+
+```bash
+# 1. preview design changes cheaply (4 key frames + contact sheet per placement)
+python3 scripts/creative_assets.py --format still --preview
+
+# 2. compare motif treatments when unsure (glass | soft | outline)
+python3 scripts/creative_assets.py --style-sheet
+
+# 3. final stills + seamless loops (prints loop-seam vs frame-step)
+python3 scripts/creative_assets.py
+
+# 4. upload + place the animated asset (replaces the existing placement)
+python3 scripts/upload_creative_assets.py --version 1.0 --placement header \
+  --image store-assets/creative/out/header.png --video store-assets/creative/out/header.mp4 --replace
+python3 scripts/upload_creative_assets.py --version 1.0 --placement search \
+  --image store-assets/creative/out/search.png --video store-assets/creative/out/search.mp4 --replace
+
+# fallback stills only (no placement change)
+python3 scripts/upload_creative_assets.py --version 1.0 --placement header \
+  --image store-assets/creative/out/header.png --no-place
+```
+
+API details and traps: [references/api.md](references/api.md).
+
+## Design recipe that works (minimal)
+
+- **Two text elements only**: app wordmark + one headline. Large type, tight
+  tracking (tracking ≈ 10% of wordmark size, *not* 25%); skip sublines.
+- **Generous insets** (~10% horizontal). It is easy to make this too tight; leave
+  real empty space around the block.
+- **One real UI card** anchored right, **~25% cropped below the frame** so the
+  interface reads large without shrinking the copy.
+- **Motif**: rasterize the app icon (Inkscape) into a huge, soft middle layer.
+  The **glass** treatment (translucent white fill + subtle top sheen, **no stroke**,
+  faint lift shadow) reads best on a light background; increase fill opacity
+  until it is clearly visible. `soft` reads like a shadow; `outline` is too faint.
+- **Background**: deterministic — cool diagonal gradient + soft glow + fine grain.
+  Match the app's UI palette (cool gray-blue, not beige). No AI needed for this.
+- **Motion**: one phase for all layers, different amplitudes (e.g. texture ±10 px,
+  motif ±90 px, foreground text+card ±24 px). Text and screenshot must move as a
+  **single block** — never independent/random motion. Slower is better: 10–14 s
+  loops. Use fractional bicubic offsets; integer truncation stair-steps and reads
+  as jitter. Keep every motion periodic; the renderer prints
+  `loop-seam ≈ step` when the loop connects.
+
+## Headless models
+
+- **Image generation**: OpenRouter models are available in the OpenCode catalog
+  (Nano Banana 2 Lite / Pro, Gemini 3.1 Flash Image, GPT-5.4 Image 2). Use them for
+  abstract backdrop art only — never text or UI. `scripts/generate_creative_art.py`
+  reads `OPENROUTER_API_KEY` or the OpenCode auth store; cache output in
+  `store-assets/creative/art/`.
+- **Recitation filters**: some prompts/models return `finish_reason: content_filter`
+  (`IMAGE_RECITATION`); keep prompts abstract ("paper texture, no logos/text") and
+  retry or switch model.
+- **No video models** in the catalog — animate by rendering frames and piping raw
+  RGB to `ffmpeg` (`libx264`, `yuv420p`, `-crf 16`, `+faststart`).
+- **Agent loop**: `opencode run -m <provider/model> --format json --auto "<brief>"`
+  can edit the YAML and re-render; it cannot emit raster art itself.
+
+## Porting to another app
+
+1. Copy the three scripts (they are app-agnostic) and `scripts/asc/` from that app.
+2. Rename the app constant used by the uploader (`SANDOW_APP_ID` → that app's
+   constant, or standardise on `APP_ID` in `scripts/asc/constants.py`).
+3. Rasterize the app mark:
+   `inkscape AppIcon.icon/Assets/<mark>.svg --export-type=png --export-width=2000`.
+4. Create `store-assets/creative/<app>.yaml`: app id/name, palette from the app,
+   wordmark + two-line headline per placement, `ui.shot` pointing at a real
+   portrait capture, durations, motif ratios.
+5. Iterate with `--format still --preview`; check the motif style if unsure.
+6. Render videos, upload with `--replace`, then upload stills with `--no-place`.
+7. Add the commands to the app's release runbook.
