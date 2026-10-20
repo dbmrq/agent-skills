@@ -113,3 +113,40 @@ Use the `image` relationship for images. To replace a placement: list, delete, c
 - Apps without an editable version (`READY_FOR_SALE`): update the live product page
   with a metadata-only submission, or add the assets with the next version. Older
   SDK builds also won't show the iOS 27-optimized presentation until recompiled.
+
+## 5. Reviewing assets on their own (live apps)
+
+A placement whose parent is already approved only accepts an `APPROVED` asset:
+
+```
+409 ENTITY_ERROR.RELATIONSHIP.INVALID
+"The asset must be in the APPROVED state because the parent is already approved."
+```
+
+Submit the assets to App Review without an app version:
+
+```http
+POST /reviewSubmissions
+{ "data": { "type": "reviewSubmissions",
+            "attributes": { "platform": "IOS" },
+            "relationships": { "app": { "data": { "type": "apps", "id": "{APP_ID}" } } } } }
+
+POST /reviewSubmissionItems
+{ "data": { "type": "reviewSubmissionItems",
+            "relationships": {
+              "reviewSubmission": { "data": { "type": "reviewSubmissions", "id": "{SUB_ID}" } },
+              "appAssetLibraryVideo": { "data": { "type": "appAssetLibraryVideos", "id": "{ASSET_ID}" } } } } }
+# use appAssetLibraryImage / appAssetLibraryImages for stills
+
+PATCH /reviewSubmissions/{SUB_ID}
+{ "data": { "type": "reviewSubmissions", "id": "{SUB_ID}", "attributes": { "submitted": true } } }
+```
+
+- One item per asset; `GET /reviewSubmissions/{SUB_ID}/items` lists them (keep it
+  idempotent before adding).
+- Asset states: `PREPARE_FOR_SUBMISSION → READY_FOR_REVIEW → WAITING_FOR_REVIEW →
+  IN_REVIEW → ACCEPTED → APPROVED` (`FAILED` / `REJECTED` are terminal).
+- Only `APPROVED` assets can be placed on an already-approved parent. `ACCEPTED`
+  is transient — poll for `APPROVED`.
+- Submissions are per app and per platform; an open draft (`READY_FOR_REVIEW`)
+  can be reused, and only one submission may be open at a time.

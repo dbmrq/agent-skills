@@ -37,6 +37,7 @@ store-assets/creative/out/           # header/search .png + .mp4 + previews
 scripts/creative_assets.py           # renderer (stills, videos, previews, styles)
 scripts/generate_creative_art.py     # optional AI backdrop (headless image model)
 scripts/upload_creative_assets.py    # Asset Library upload + placement
+scripts/submit_creative_assets.py    # submit assets for review (live apps)
 ```
 
 ## Workflow
@@ -63,6 +64,41 @@ python3 scripts/upload_creative_assets.py --version 1.0 --placement header \
 ```
 
 API details and traps: [references/api.md](references/api.md).
+
+## Live apps: review the assets before placing them
+
+A version that is already `READY_FOR_SALE` rejects a placement whose asset is not
+approved yet:
+
+```
+409 ENTITY_ERROR.RELATIONSHIP.INVALID
+"The asset must be in the APPROVED state because the parent is already approved."
+```
+
+So for a live app (no editable version) the order is **upload → review → place**:
+
+```bash
+# 1. upload without touching the placement (the still stays as a fallback)
+python3 scripts/upload_creative_assets.py --version 1.2 --placement header \
+  --image store-assets/creative/out/header.png \
+  --video store-assets/creative/out/header.mp4 --no-place
+
+# 2. submit the uploaded assets to App Review on their own
+python3 scripts/submit_creative_assets.py           # create + submit a submission
+python3 scripts/submit_creative_assets.py --wait    # poll until APPROVED
+
+# 3. place the approved videos by id (no re-upload)
+python3 scripts/upload_creative_assets.py --version 1.2 --placement header \
+  --video-id <asset-id> --replace
+```
+
+Assets move `READY_FOR_REVIEW → WAITING_FOR_REVIEW → IN_REVIEW → ACCEPTED →
+APPROVED`; only `APPROVED` can be placed on an already-approved parent. On a
+**pre-submission** version the assets ride along with the version submission and
+the placement reports `ACTIVE` immediately — no separate review needed.
+
+**One placement per placement type:** place the video *or* the still, never both.
+Keep the still in the library as the fallback.
 
 ## Design recipe that works (minimal)
 
@@ -102,14 +138,23 @@ API details and traps: [references/api.md](references/api.md).
 
 ## Porting to another app
 
-1. Copy the three scripts (they are app-agnostic) and `scripts/asc/` from that app.
-2. Rename the app constant used by the uploader (`SANDOW_APP_ID` → that app's
-   constant, or standardise on `APP_ID` in `scripts/asc/constants.py`).
+1. Copy the four scripts (they are app-agnostic) and `scripts/asc/` from that app.
+2. Standardise the app id: add `APP_ID = <APP>_APP_ID` to
+   `scripts/asc/constants.py` and have the scripts import `APP_ID` — the same
+   files then work in every app repo.
 3. Rasterize the app mark:
-   `inkscape AppIcon.icon/Assets/<mark>.svg --export-type=png --export-width=2000`.
+   `inkscape AppIcon.icon/Assets/<mark>.svg --export-type=png --export-area-drawing --export-width=2000`.
+   Multi-layer icons (several SVGs in the `.icon` bundle) need one combined SVG
+   first; bump weak layers' opacity so the mark is visible at background scale.
 4. Create `store-assets/creative/<app>.yaml`: app id/name, palette from the app,
    wordmark + two-line headline per placement, `ui.shot` pointing at a real
-   portrait capture, durations, motif ratios.
+   portrait capture, durations, motif ratios. The renderer resolves
+   `store-assets/creative/<repo-name>.yaml` by default.
 5. Iterate with `--format still --preview`; check the motif style if unsure.
-6. Render videos, upload with `--replace`, then upload stills with `--no-place`.
+6. Render videos, upload with `--no-place`, submit for review, then place by id
+   (live app) or upload with `--replace` (version in review).
 7. Add the commands to the app's release runbook.
+
+**One family, several apps:** sibling apps from the same studio should share the
+backdrop palette, type scale, and motion recipe — only the wordmark, headline,
+motif, and UI card change. That makes the App Store pages look like one brand.
