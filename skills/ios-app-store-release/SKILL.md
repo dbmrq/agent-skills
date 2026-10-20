@@ -135,6 +135,8 @@ GET /v1/builds?filter[app]={APP_ID}&include=preReleaseVersion&sort=-uploadedDate
 
 **Trap:** `build.attributes.version` is the **build number** (e.g. `3`), not marketing version. Match via `included` `preReleaseVersions.attributes.version`.
 
+**Trap:** Xcode Cloud builds can be `buildAudienceType: INTERNAL_ONLY` (TestFlight-only) depending on the workflow's distribution setting. Only `APP_STORE_ELIGIBLE` builds can attach to an `appStoreVersion`; an internal build fails with `409 ENTITY_ERROR.RELATIONSHIP.INVALID — "The specified pre-release build could not be added."` Check `build.attributes.buildAudienceType` before attaching, and use the local archive flow when it is internal.
+
 Local archive fallback when Cloud is broken: `xcodebuild archive` → `exportArchive` → `xcrun altool --upload-app`. Copy `.p8` to `~/.appstoreconnect/private_keys/AuthKey_{KEY_ID}.p8` — altool ignores custom `--apiKeyPath` unless file is in that directory.
 
 After upload, PATCH build: `usesNonExemptEncryption: false` (and set `ITSAppUsesNonExemptEncryption` = NO in Info.plist for future uploads).
@@ -217,6 +219,8 @@ Use `appStoreState` / `appVersionState`. Then pick **one** path:
 
 **Goal:** get as far as ASC allows so the human only needs to click **Submit for Review**. Default `submit_for_review: false` in manifests; do not auto-submit unless the human asked.
 
+**Version string must match the build train.** A build whose `CFBundleShortVersionString` differs from the version (e.g. ASC `1.1`, builds `1.1.2`) cannot be attached. While the version is `PREPARE_FOR_SUBMISSION`, align it with the train (`PATCH /appStoreVersions/{id}` with `versionString`) before attaching — do not lower the project's marketing version to an older, closed train.
+
 “Cannot create a new version of the App in the current state” almost always means an unreleased version is still in the queue — **not** a cue to DELETE the submission. Re-run version selection instead.
 
 ## ASC sync checklist (API-verifiable)
@@ -225,7 +229,7 @@ After `asc-sync`, confirm:
 
 | Check | API hint |
 |-------|----------|
-| Build attached | `appStoreVersions` → `build` relationship |
+| Build attached | `appStoreVersions` → `build` relationship (`buildAudienceType` must be `APP_STORE_ELIGIBLE`) |
 | Export compliance | `builds` → `usesNonExemptEncryption: false` |
 | Screenshots | `appScreenshotSets` with `include=appScreenshots`; `assetDeliveryState.state: COMPLETE` |
 | Support URL | version localization |

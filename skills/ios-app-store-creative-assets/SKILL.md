@@ -95,7 +95,10 @@ python3 scripts/upload_creative_assets.py --version 1.2 --placement header \
 Assets move `READY_FOR_REVIEW → WAITING_FOR_REVIEW → IN_REVIEW → ACCEPTED →
 APPROVED`; only `APPROVED` can be placed on an already-approved parent. On a
 **pre-submission** version the assets ride along with the version submission and
-the placement reports `ACTIVE` immediately — no separate review needed.
+the placement reports `ACTIVE` immediately — no separate review needed. If the
+asset is already in an independent review submission, you can still place it on
+a `PREPARE_FOR_SUBMISSION` version while it is `WAITING_FOR_REVIEW`; the
+placement shows `ACTIVE` and both reviews proceed.
 
 **One placement per placement type:** place the video *or* the still, never both.
 Keep the still in the library as the fallback.
