@@ -28,6 +28,40 @@ No alpha. One placement per placement type (`maxCount` 1) — place the video
 (animated) or the image, not both. Assets are reviewed separately from the app
 (they can ride with the version or be submitted from the Asset Library).
 
+## Safe area: the canvas gets cropped
+
+The App Store does **not** show the whole canvas. It crops per device and
+orientation, so anything outside the centred band can disappear. Apple's own
+creative-asset templates mark an "ART SAFE AREA" (measured from the Sketch
+templates; Apple publishes no pixel numbers):
+
+| Placement | Canvas | Safe area | Share of canvas |
+|---|---|---|---|
+| Product page header | 3840 × 1646 | 1646 × 661 centred | 43 % × 40 % |
+| Search results | 3840 × 2560 | 2168 × 1030 centred | 56.5 % × 40.2 % |
+| Universal | 5244 × 2950 | 1402 × 962 (334 px **above** centre) | 26.7 % × 32.6 % |
+
+A device preview on a real iPhone showed less than the template promises: the
+header kept only the **middle ~60 %** of its width (the visible slice started
+at the "u" of "Your lists."). Treat the template numbers as the floor and a
+measured crop as the working number.
+
+The renderer enforces the band: `safeArea` in the YAML declares it per
+placement and every element (wordmark, headline, visible screenshot) is laid
+out inside it.
+
+```yaml
+header:
+  safeArea:
+    widthRatio: 0.60      # centred horizontal band, fraction of the canvas
+    heightRatio: 0.40     # centred vertical band for the text block
+    insetRatio: 0.02      # extra room inside the band
+```
+
+`--check` verifies the invariant (text and card inside the band) and
+`--safe-area` tints the still outside it. Both are cheap — run them before
+every render.
+
 ## Repo pieces
 
 ```
@@ -43,6 +77,9 @@ scripts/submit_creative_assets.py    # submit assets for review (live apps)
 ## Workflow
 
 ```bash
+# 0. verify the content stays inside the safe area (text + screenshot)
+python3 scripts/creative_assets.py --check
+
 # 1. preview design changes cheaply (4 key frames + contact sheet per placement)
 python3 scripts/creative_assets.py --format still --preview
 
@@ -107,14 +144,21 @@ Keep the still in the library as the fallback.
 
 - **Two text elements only**: app wordmark + one headline. Large type, tight
   tracking (tracking ≈ 10% of wordmark size, *not* 25%); skip sublines.
-- **Generous insets** (~10% horizontal). It is easy to make this too tight; leave
-  real empty space around the block.
+- **Everything inside the safe area** — that is the whole layout budget. The
+  wordmark and headline scale with the headline (`wordmarkScale`), the
+  headline is shrunk until it fits the column between the safe-area edge and
+  the screenshot card. A ~10% inset is *not* enough: the App Store crops the
+  header to the middle ~60%.
 - **One real UI card** anchored right, **~25% cropped below the frame** so the
-  interface reads large without shrinking the copy.
+  interface reads large without shrinking the copy. Its *visible width* must
+  stay inside the safe area; the vertical bleed is the intended crop. On the
+  3:2 search canvas the band is nearly square, so shrink the card
+  (`cardHeightRatio`) to keep room for a headline that still reads.
 - **Motif**: rasterize the app icon (Inkscape) into a huge, soft middle layer.
   The **glass** treatment (translucent white fill + subtle top sheen, **no stroke**,
   faint lift shadow) reads best on a light background; increase fill opacity
   until it is clearly visible. `soft` reads like a shadow; `outline` is too faint.
+  The motif is bleed — it may live outside the band.
 - **Background**: deterministic — cool diagonal gradient + soft glow + fine grain.
   Match the app's UI palette (cool gray-blue, not beige). No AI needed for this.
 - **Motion**: one phase for all layers, different amplitudes (e.g. texture ±10 px,
@@ -150,14 +194,17 @@ Keep the still in the library as the fallback.
    Multi-layer icons (several SVGs in the `.icon` bundle) need one combined SVG
    first; bump weak layers' opacity so the mark is visible at background scale.
 4. Create `store-assets/creative/<app>.yaml`: app id/name, palette from the app,
-   wordmark + two-line headline per placement, `ui.shot` pointing at a real
-   portrait capture, durations, motif ratios. The renderer resolves
+   wordmark + two-line headline per placement, `safeArea` per placement (copy
+   the sibling app's ratios so the family matches), `ui.shot` pointing at a
+   real portrait capture, durations, motif ratios. The renderer resolves
    `store-assets/creative/<repo-name>.yaml` by default.
 5. Iterate with `--format still --preview`; check the motif style if unsure.
+   Run `--check` to prove the content sits inside the safe area.
 6. Render videos, upload with `--no-place`, submit for review, then place by id
    (live app) or upload with `--replace` (version in review).
 7. Add the commands to the app's release runbook.
 
 **One family, several apps:** sibling apps from the same studio should share the
-backdrop palette, type scale, and motion recipe — only the wordmark, headline,
-motif, and UI card change. That makes the App Store pages look like one brand.
+backdrop palette, type scale, safe-area ratios, and motion recipe — only the
+wordmark, headline, motif, and UI card change. That makes the App Store pages
+look like one brand.
