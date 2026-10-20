@@ -135,11 +135,46 @@ GET /v1/builds?filter[app]={APP_ID}&include=preReleaseVersion&sort=-uploadedDate
 
 **Trap:** `build.attributes.version` is the **build number** (e.g. `3`), not marketing version. Match via `included` `preReleaseVersions.attributes.version`.
 
-**Trap:** Xcode Cloud builds can be `buildAudienceType: INTERNAL_ONLY` (TestFlight-only) depending on the workflow's distribution setting. Only `APP_STORE_ELIGIBLE` builds can attach to an `appStoreVersion`; an internal build fails with `409 ENTITY_ERROR.RELATIONSHIP.INVALID — "The specified pre-release build could not be added."` Check `build.attributes.buildAudienceType` before attaching, and use the local archive flow when it is internal.
+**Trap:** Xcode Cloud builds can be `buildAudienceType: INTERNAL_ONLY` (TestFlight-only) depending on the workflow's distribution setting. Only `APP_STORE_ELIGIBLE` builds can attach to an `appStoreVersion`; an internal build fails with `409 ENTITY_ERROR.RELATIONSHIP.INVALID — "The specified pre-release build could not be added."` **Filter on `buildAudienceType == APP_STORE_ELIGIBLE` inside the build selector**, not only at attach time: Beta/TestFlight builds are usually the newest ones, so an unfiltered “latest VALID build” will always pick the wrong one. Prefer `newer_than_build_id=<previous eligible build>` over `min_build_number` — Xcode Cloud may stamp its own CI run number (28) while `project.yml` says 101, so a project-number floor can reject the real release build.
+
+**Workflow contract (enforce it before tagging):** keep two workflows per app — `Release` on tag `v*` with `APP_STORE_ELIGIBLE`, and `Beta` on push to `main` with `INTERNAL_ONLY` for TestFlight/FeedbackLoop. Beta must never be App Store-eligible: a feedback-loop build must not be attachable to a version. Audit both via the ASC API (`GET /ciProducts/{id}/workflows`) or a `scripts/asc/workflows.py audit` helper; a missing Release workflow is the usual reason every build picker entry is grayed out. Creating a workflow is possible via `POST /v1/ciWorkflows` (needs product, primary repository, `ciXcodeVersions` “Latest Release”, and `ciMacOsVersions` “Latest Release” relationships). **PATCHing a workflow replaces the start conditions you omit** — to add `manualBranchStartCondition`, send `tagStartCondition` and `manualTagStartCondition` in the same PATCH or tag releases silently stop triggering.
+
+**Diagnosing “most builds are grayed out”:** query `/v1/builds` and look at `buildAudienceType`. If the recent ones are all `INTERNAL_ONLY` and there is no `Release` workflow, the app has only a Beta/TestFlight pipeline. Add the Release workflow, run it from the tag/branch, wait for `processingState: VALID`, then attach that build. Do not try to attach a Beta build.
 
 Local archive fallback when Cloud is broken: `xcodebuild archive` → `exportArchive` → `xcrun altool --upload-app`. Copy `.p8` to `~/.appstoreconnect/private_keys/AuthKey_{KEY_ID}.p8` — altool ignores custom `--apiKeyPath` unless file is in that directory.
 
 After upload, PATCH build: `usesNonExemptEncryption: false` (and set `ITSAppUsesNonExemptEncryption` = NO in Info.plist for future uploads).
+
+## Submitting for review (current API)
+
+`POST /v1/appStoreVersionSubmissions` is **not** available to API keys anymore: it returns
+`403 FORBIDDEN_ERROR — The resource 'appStoreVersionSubmissions' does not allow 'CREATE'.
+Allowed operation is: DELETE`. Use review submissions instead:
+
+1. `POST /v1/reviewSubmissions` with `platform: IOS` and the app relationship.
+2. `POST /v1/reviewSubmissionItems` with `reviewSubmission` + `appStoreVersion`.
+3. `PATCH /v1/reviewSubmissions/{id}` with `submitted: true`.
+
+**Trap — an open submission may not contain your app version.** Creative assets
+(header/search images and videos) can be submitted separately and sit in
+`WAITING_FOR_REVIEW` while the version is still `PREPARE_FOR_SUBMISSION`. Before deciding
+“already submitted” or reusing a draft, list items with
+`GET /reviewSubmissions/{id}/items?include=appStoreVersion` and check for a matching
+`appStoreVersion` id. Multiple submissions can coexist; create a new one for the version
+if the open one only contains assets. Do not cancel the asset submission.
+
+**`whatsNew` is required for updates.** ASC localizations are often empty while the release
+manifest has the notes. Merge/patch `whatsNew` before submitting (the manifest is the
+source for shipping copy); for a first release it may be non-editable and can be skipped.
+
+A `409 STATE_ERROR.ENTITY_STATE_INVALID` on item-create hides readiness blockers in
+`meta.associatedErrors` — surface them. Common current blockers:
+
+- `STATE_ERROR.CANNOT_SUBMIT_MISSING_REGULATED_MEDICAL_DEVICE_APP_DECLARATION` → App Store
+  Connect → App Information → **Declare Regulated Medical Device** (select **No** for a
+  non-medical app). Required for apps with a primary/secondary Health & Fitness or Medical
+  category, or frequent medical content in the age rating. **UI-only, no public API.**
+- App Privacy questionnaire (also UI-only).
 
 ## Screenshots (non-obvious)
 
@@ -171,7 +206,8 @@ Store screenshots need content; **App Store builds must not**.
 Confirm:
 
 - Release workflow triggers on **tag** `v*`
-- Scheme = app target, action = Archive, distribution = App Store
+- Scheme = app target, action = Archive, distribution = **`APP_STORE_ELIGIBLE`**
+- Beta workflow (push to `main`) distribution = **`INTERNAL_ONLY`** (FeedbackLoop/TestFlight only)
 - `Gregor.xcodeproj/xcshareddata/xcodecloud/manifest.json` ids match after workflow creation (Xcode writes these)
 
 Monitor: `scripts/check_xcode_cloud.py --product "{AppName}" --wait 1200`
@@ -246,6 +282,7 @@ After `asc-sync`, confirm:
 
 - First GitHub ↔ Xcode Cloud connect
 - App Privacy questionnaire
+- **Regulated Medical Device declaration** (App Information; UI-only; required for Health & Fitness/Medical apps before submission)
 - Pressing **Submit for Review** (recommended even when API submit exists)
 - Submitting creative assets (header/search) for review — or letting them ride with the app version
 - App Review rejection iteration

@@ -34,7 +34,20 @@ GET /v1/builds?filter[app]={APP_ID}&include=preReleaseVersion&sort=-uploadedDate
 
 ### Build numbers must clear Xcode Cloud auto-numbering
 
-Xcode Cloud auto-numbers TestFlight builds (project `CURRENT_PROJECT_VERSION` may stay at `1` while ASC builds read `17`). A local `xcodegen` bump from the project value can therefore upload a build number **lower** than existing builds (ASC accepted the duplicate and validated it anyway in practice, but the wrong build can then be attached). Before a local archive, set the build number to `max(local, highest ASC build + 1)` — or a clearly higher value — and pass that same floor as `min_build_number` when selecting the build to attach. Race note: a branch push also triggers the Cloud Beta workflow; attaching the newest matching build can pick up the Cloud build instead — a min build-number filter fixes that.
+Xcode Cloud auto-numbers builds (project `CURRENT_PROJECT_VERSION` may stay at `1` while ASC builds read `17`). A local `xcodegen` bump from the project value can therefore upload a build number **lower** than existing builds. Before a local archive, set the build number to `max(local, highest ASC build + 1)` — or a clearly higher value.
+
+**Do not use that project build number as a `min_build_number` filter when selecting the build to attach.** Xcode Cloud may stamp its own CI run number (e.g. 28) while `project.yml` says 101, so a project-number floor rejects the real release build. Use `newer_than_build_id=<id of the previous eligible build>` instead.
+
+### Select only App Store-eligible builds
+
+A branch push also triggers the Beta workflow, whose builds are `INTERNAL_ONLY` (TestFlight-only). They are usually the newest builds, so an unfiltered “latest VALID build” picks the wrong one and the attach fails with `409 ENTITY_ERROR.RELATIONSHIP.INVALID`. Filter inside the selector:
+
+```python
+if build["attributes"].get("buildAudienceType") != "APP_STORE_ELIGIBLE":
+    continue
+```
+
+Keep the contract explicit: `Release` workflow on tag `v*` = `APP_STORE_ELIGIBLE`; `Beta` workflow on `main` = `INTERNAL_ONLY`. If Beta were App Store-eligible, a FeedbackLoop build could be submitted.
 
 ### Screenshot display types
 
@@ -138,11 +151,42 @@ If `POST /appStoreVersions` returns **409** (“You cannot create a new version�
 
 ### Submit for review via API
 
-`POST /appStoreVersionSubmissions` may return **403** (`CREATE` not allowed for API key role). Treat API submit as optional; human Submit in ASC is reliable.
+`POST /appStoreVersionSubmissions` now returns **403** for API keys:
+`The resource 'appStoreVersionSubmissions' does not allow 'CREATE'. Allowed operation is: DELETE`.
+Use the modern review-submission flow instead:
+
+1. `POST /v1/reviewSubmissions` with `{platform: "IOS", app}`.
+2. `POST /v1/reviewSubmissionItems` with `reviewSubmission` + `appStoreVersion`.
+3. `PATCH /v1/reviewSubmissions/{id}` with `{submitted: true}`.
+
+An existing `WAITING_FOR_REVIEW` submission may contain only creative assets. Check
+`GET /reviewSubmissions/{id}/items?include=appStoreVersion` for the version id before
+reusing or skipping; multiple submissions can coexist. Readiness failures surface as a
+generic `409 STATE_ERROR.ENTITY_STATE_INVALID`; inspect `meta.associatedErrors`. A new
+required declaration is
+`STATE_ERROR.CANNOT_SUBMIT_MISSING_REGULATED_MEDICAL_DEVICE_APP_DECLARATION`: declare
+**No** in App Store Connect → App Information → **Declare Regulated Medical Device**
+(UI-only; applies to Health & Fitness/Medical categories). App Privacy remains UI-only too.
 
 ### Xcode Cloud CI product visibility
 
 `GET /v1/ciProducts` may list only older products immediately after creating a workflow. Fallback: poll `GET /v1/builds?filter[app]=...` after tag push. SCM repo connection (`GET /v1/scmRepositories`) can exist before CI product appears in list API.
+
+**Build-run workflow filter trap:** `GET /v1/ciProducts/{id}/buildRuns` omits the `workflow` relationship unless you pass `include=workflow`. A `wait_for_build_run(workflow_id=...)` that reads `relationships.workflow` without the include silently matches nothing and times out. Fetch `limit=50&include=workflow`, filter in Python, and pick the highest `number`.
+
+### Create or update a Release workflow via API
+
+`POST /v1/ciWorkflows` works. Required attributes: `name`, `description`, `isEnabled`,
+`clean`, `containerFilePath`, `actions`; required relationships: `product`, `repository`,
+`xcodeVersion` (id of `ciXcodeVersions` “Latest Release”), `macOsVersion` (id of
+`ciMacOsVersions` “Latest Release”). Archive action needs
+`buildDistributionAudience: "APP_STORE_ELIGIBLE"`. Add `tagStartCondition` with pattern
+`v` + `isPrefix: true`; `manualBranchStartCondition` on `main` is useful for re-running a
+release without minting a tag.
+
+**PATCH replaces omitted start conditions.** Sending only
+`manualBranchStartCondition` clears `tagStartCondition` and `manualTagStartCondition`.
+Send all desired conditions in the same PATCH, then run the workflow audit.
 
 ### Agreement errors
 
