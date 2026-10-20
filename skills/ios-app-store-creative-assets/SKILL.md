@@ -46,21 +46,56 @@ header kept only the **middle ~60 %** of its width (the visible slice started
 at the "u" of "Your lists."). Treat the template numbers as the floor and a
 measured crop as the working number.
 
+**The two placements are cropped very differently — do not use one band for
+both:**
+
+- **Header** is the narrow 21:9 hero, and the App Store shows it as a much
+  squarer band on an iPhone. Keep the lockup inside Apple's template band
+  (43 % × 40 %). Apple's own examples centre it, and they carry no
+  screenshot: the product page shows the real screenshots right below the
+  header, so a screenshot in the header is redundant.
+- **Search** is a dedicated 3:2 asset shown in a **3:2 card** at the full
+  width of the search result — iPhone crops nothing. Apple's own search
+  examples put the type at the left edge with the imagery bleeding off the
+  right. The template's 56.5 % band is the conservative fallback for other
+  orientations, not a reason to shrink the type.
+
 The renderer enforces the band: `safeArea` in the YAML declares it per
-placement and every element (wordmark, headline, visible screenshot) is laid
-out inside it.
+placement and the text is laid out inside it.
 
 ```yaml
 header:
   safeArea:
-    widthRatio: 0.60      # centred horizontal band, fraction of the canvas
+    widthRatio: 0.43      # centred horizontal band, fraction of the canvas
     heightRatio: 0.40     # centred vertical band for the text block
-    insetRatio: 0.02      # extra room inside the band
+    insetRatio: 0
+  card: false             # the product page shows the screenshots already
+  textAlign: center
+  headline: |
+    Your lists.
+    In plain markdown.
+
+search:
+  safeArea:
+    widthRatio: 1.0       # a 3:2 asset in a 3:2 card: no crop
+    heightRatio: 1.0
+    insetRatio: 0.105     # the text margin
+  cardRightRatio: 0.925   # the card bleeds towards the right edge
+  columnGapRatio: 0.1
 ```
 
-`--check` verifies the invariant (text and card inside the band) and
-`--safe-area` tints the still outside it. Both are cheap — run them before
-every render.
+`--check` verifies the invariant (text inside the band, no text/card
+overlap) and `--safe-area` tints the still outside it. Both are cheap — run
+them before every render.
+
+## The motif art must be a single mark
+
+The motif is the app icon blown up to a soft background shape. Rasterize
+**one recognisable mark**, not the whole icon bundle: an icon sheet (a task
+list with a row, a check and a cross) turns into a pile of random shapes
+behind the type. Cut a single shape into its own SVG and export that
+(`inkscape mark.svg --export-type=png --export-area-drawing
+--export-width=2000`).
 
 ## Repo pieces
 
@@ -146,19 +181,21 @@ Keep the still in the library as the fallback.
   tracking (tracking ≈ 10% of wordmark size, *not* 25%); skip sublines.
 - **Everything inside the safe area** — that is the whole layout budget. The
   wordmark and headline scale with the headline (`wordmarkScale`), the
-  headline is shrunk until it fits the column between the safe-area edge and
-  the screenshot card. A ~10% inset is *not* enough: the App Store crops the
-  header to the middle ~60%.
-- **One real UI card** anchored right, **~25% cropped below the frame** so the
-  interface reads large without shrinking the copy. Its *visible width* must
-  stay inside the safe area; the vertical bleed is the intended crop. On the
-  3:2 search canvas the band is nearly square, so shrink the card
-  (`cardHeightRatio`) to keep room for a headline that still reads.
+  headline is shrunk until it fits the column between the band edge and the
+  screenshot card. A ~10% inset is *not* enough for the header: the App
+  Store crops it to the middle ~60 %, and Apple's template is stricter.
+- **One real UI card in the search asset**, anchored right, **~25% cropped
+  below the frame** so the interface reads large without shrinking the copy.
+  Its *visible width* may bleed towards the edge (the 3:2 search card is not
+  cropped); the vertical bleed is the intended crop. The **header** gets no
+  card — the product page shows the screenshots right below it.
 - **Motif**: rasterize the app icon (Inkscape) into a huge, soft middle layer.
   The **glass** treatment (translucent white fill + subtle top sheen, **no stroke**,
   faint lift shadow) reads best on a light background; increase fill opacity
   until it is clearly visible. `soft` reads like a shadow; `outline` is too faint.
-  The motif is bleed — it may live outside the band.
+  One recognisable mark only — see above. The motif is bleed: it may live
+  outside the band, and it can be positioned per placement
+  (`motif: { header: { centerXRatio: 0.5 } }`).
 - **Background**: deterministic — cool diagonal gradient + soft glow + fine grain.
   Match the app's UI palette (cool gray-blue, not beige). No AI needed for this.
 - **Motion**: one phase for all layers, different amplitudes (e.g. texture ±10 px,
@@ -189,10 +226,13 @@ Keep the still in the library as the fallback.
 2. Standardise the app id: add `APP_ID = <APP>_APP_ID` to
    `scripts/asc/constants.py` and have the scripts import `APP_ID` — the same
    files then work in every app repo.
-3. Rasterize the app mark:
+3. Rasterize **one** app mark:
    `inkscape AppIcon.icon/Assets/<mark>.svg --export-type=png --export-area-drawing --export-width=2000`.
    Multi-layer icons (several SVGs in the `.icon` bundle) need one combined SVG
    first; bump weak layers' opacity so the mark is visible at background scale.
+   If the SVG is a sheet of several marks (a task list with a row, a check and a
+   cross), cut a single shape into its own SVG — the motif is a background
+   shape, and a sheet reads as random shapes.
 4. Create `store-assets/creative/<app>.yaml`: app id/name, palette from the app,
    wordmark + two-line headline per placement, `safeArea` per placement (copy
    the sibling app's ratios so the family matches), `ui.shot` pointing at a
