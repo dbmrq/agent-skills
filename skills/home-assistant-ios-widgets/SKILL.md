@@ -105,6 +105,10 @@ path can serve an old file.
 
 ## Hard-won rules
 
+- A tile that should run a multi-step scene/automation must target a `script` or
+  a template `switch` that wraps it, not the leaf device — a projector tile
+  pointing at `media_player.projector` only powers the projector and leaves the
+  lights/blinds alone.
 - Keep widget IDs stable across builds so re-import updates a placed Home Screen
   widget instead of orphaning it.
 - `ui-lovelace.yaml` is not necessarily the `lovelace` dashboard — read
